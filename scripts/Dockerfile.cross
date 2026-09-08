@@ -1,0 +1,7 @@
+FROM golang:1.25.7-bookworm AS toolchain
+FROM ubuntu:24.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc g++ pkg-config ca-certificates libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev gcc-mingw-w64-x86-64 && rm -rf /var/lib/apt/lists/*
+COPY --from=toolchain /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPROXY=https://goproxy.cn,direct
+WORKDIR /src

@@ -1,0 +1,64 @@
+name: build-and-test
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Linux graphics dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
+      - name: Windows compiler
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          path-type: inherit
+          install: mingw-w64-x86_64-gcc
+      - run: go test -race -tags ci ./...
+        if: runner.os != 'Windows'
+      - name: Windows regression
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: go test -race -tags ci ./...
+      - name: Upstream terminal regression
+        working-directory: third_party/vt
+        run: go test ./...
+      - name: Package native application
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash scripts/package.sh
+      - name: Package Windows application
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: |
+            dist/*.zip
+            dist/*.exe
+            dist/*.tar.gz
+            dist/LICENSE
+            dist/NOTICE
+            dist/THIRD_PARTY_LICENSES.txt
+  linux-integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: docker build -t nexshell-test-sshd:local tests/fixture
+      - run: go test -race -tags integration ./tests/integration -v -count=1

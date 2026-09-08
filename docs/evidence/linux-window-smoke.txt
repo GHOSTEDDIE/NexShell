@@ -1,0 +1,12 @@
+debconf: delaying package configuration, since apt-utils is not installed
+2026/09/08 09:23:32 Fyne error:  Failed to create fyne cache space
+2026/09/08 09:23:32   Cause: mkdir /root/.cache/fyne/: no such file or directory
+2026/09/08 09:23:32   At: fyne.io/fyne/v2@v2.8.1/app/cache.go:28
+2026/09/08 09:23:32 Fyne error:  Failed to create app cache space
+2026/09/08 09:23:32   Cause: mkdir /root/.cache/fyne/io.nexshell.desktop: no such file or directory
+2026/09/08 09:23:32   At: fyne.io/fyne/v2@v2.8.1/app/cache.go:34
+error: XDG_RUNTIME_DIR is invalid or not set in the environment.
+2026/09/08 09:23:33 Fyne error:  failed to watch theme settings
+2026/09/08 09:23:33   Cause: exec: "dbus-launch": executable file not found in $PATH
+2026/09/08 09:23:33   At: fyne.io/fyne/v2@v2.8.1/app/app_xdg.go:152
+linux-window-smoke-passed
