@@ -15,6 +15,7 @@ import (
 )
 
 type Executor struct {
+	Desktop *DesktopTerminals
 	Manager *Manager
 	Store   *store.Store
 	locks   sync.Map
@@ -23,7 +24,7 @@ type Executor struct {
 var resourceName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.@:+-]*$`)
 
 func Mutates(op string) bool {
-	return op == "file_write" || op == "service_restart" || op == "package_install" || op == "shell"
+	return op == "terminal_write" || op == "file_write" || op == "service_restart" || op == "package_install" || op == "shell"
 }
 func BuildCommand(r domain.Request) (string, error) {
 	switch r.Operation {
@@ -129,6 +130,17 @@ func (e *Executor) Execute(ctx context.Context, r domain.Request) (domain.Result
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 	switch r.Operation {
+	case "terminal_connect", "terminal_read", "terminal_write":
+		if e.Desktop == nil {
+			err = errors.New("终端工作台不可用")
+		} else {
+			var output string
+			output, err = e.Desktop.Perform(ctx, r)
+			if err == nil {
+				_, err = cap.Write([]byte(output))
+				result.ExitCode = 0
+			}
+		}
 	case "file_read":
 		var b []byte
 		var hash string
@@ -170,7 +182,7 @@ func (e *Executor) Execute(ctx context.Context, r domain.Request) (domain.Result
 	if err != nil {
 		result.Error = err.Error()
 		result.Status = "failed"
-		if result.ExitCode < 0 && r.Operation != "file_read" {
+		if result.ExitCode < 0 && r.Operation != "file_read" && r.Operation != "terminal_read" && r.Operation != "terminal_connect" {
 			result.Status = "unknown"
 		}
 	}

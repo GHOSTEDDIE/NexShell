@@ -1,0 +1,27 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+=== RUN   TestAuditSnapshotDuringStalledPaste
+    audit_stall_test.go:33: UI Snapshot remains blocked while network writer stalls
+--- FAIL: TestAuditSnapshotDuringStalledPaste (0.15s)
+=== RUN   TestAuditSnapshotDuringStalledPaste
+    audit_stall_test.go:33: UI Snapshot remains blocked while network writer stalls
+--- FAIL: TestAuditSnapshotDuringStalledPaste (0.15s)
+=== RUN   TestAuditSnapshotDuringStalledPaste
+    audit_stall_test.go:33: UI Snapshot remains blocked while network writer stalls
+--- FAIL: TestAuditSnapshotDuringStalledPaste (0.15s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/terminal	0.992s
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+=== RUN   TestAuditClosedWorkspaceReleased
+    audit_lifecycle_test.go:25: closed workspace still reachable from App.workspaces; terminal core and history cannot be collected
+--- FAIL: TestAuditClosedWorkspaceReleased (0.09s)
+=== RUN   TestAuditClosedWorkspaceReleased
+    audit_lifecycle_test.go:25: closed workspace still reachable from App.workspaces; terminal core and history cannot be collected
+--- FAIL: TestAuditClosedWorkspaceReleased (0.07s)
+=== RUN   TestAuditClosedWorkspaceReleased
+    audit_lifecycle_test.go:25: closed workspace still reachable from App.workspaces; terminal core and history cannot be collected
+--- FAIL: TestAuditClosedWorkspaceReleased (0.07s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.176s
+FAIL

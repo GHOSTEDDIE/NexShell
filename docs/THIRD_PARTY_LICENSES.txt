@@ -8090,7 +8090,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Noto Sans Mono CJK SC
+Noto Sans CJK SC (Regular and Medium) / Noto Sans Mono CJK SC
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.
 

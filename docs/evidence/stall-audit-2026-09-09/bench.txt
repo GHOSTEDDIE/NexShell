@@ -1,0 +1,11 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+goos: darwin
+goarch: arm64
+pkg: github.com/GHOSTEDDIE/nexshell/internal/terminal
+cpu: Apple M1 Pro
+BenchmarkAuditFullScrollback/1000-10         	  541459	       449.8 ns/op
+BenchmarkAuditFullScrollback/10000-10        	   43522	      4823 ns/op
+BenchmarkAuditTerminalPaint-10               	     661	    349761 ns/op	  349776 B/op	    4236 allocs/op
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/terminal	1.543s

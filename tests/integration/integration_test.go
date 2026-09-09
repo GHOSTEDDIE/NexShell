@@ -25,6 +25,7 @@ import (
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
+	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
 	"github.com/GHOSTEDDIE/nexshell/internal/transfer/zmodem"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
@@ -239,6 +240,14 @@ func TestLinuxLab(t *testing.T) {
 		if e != nil || second.Memory.State != "ok" || second.CPU.State != "ok" {
 			t.Fatalf("metrics: %+v %v", second, e)
 		}
+		processes, err := remote.ParseProcesses(fmt.Sprint(second.Processes.Value))
+		if second.Processes.State != "ok" || err != nil || len(processes) == 0 {
+			t.Fatalf("structured processes: %v %v", processes, err)
+		}
+		ports, err := remote.ParsePorts(fmt.Sprint(second.Ports.Value))
+		if second.Ports.State != "ok" || err != nil || len(ports) == 0 {
+			t.Fatalf("structured ports: %v %v", ports, err)
+		}
 		for _, kind := range []string{"local", "dynamic"} {
 			tunnel, e := m.Tunnel(ctx, h.ID, kind, "127.0.0.1:0", "127.0.0.1:22")
 			if e != nil {
@@ -323,7 +332,71 @@ func TestLinuxLab(t *testing.T) {
 			t.Fatal("ZMODEM resumed content differs", e)
 		}
 	})
+
+	t.Run("companion_existing_terminal", func(t *testing.T) {
+		session, err := m.Terminal(ctx, h.ID, 24, 80)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer session.Close()
+		initialDir, err := m.TerminalDirectory(ctx, h.ID, session)
+		if err != nil || initialDir != "/root" {
+			t.Fatal("initial terminal directory", initialDir, err)
+		}
+
+		core := terminal.NewCore(80, 24)
+		defer core.CloseInput()
+		go io.Copy(io.Discard, core)
+		go io.Copy(core, session.Output)
+		desktop := &remote.DesktopTerminals{}
+		id := desktop.Register(h.ID, session.Input, func() string { return strings.Join(core.Lines(), "\n") }, func() bool { return true })
+		ex := &remote.Executor{Manager: m, Store: s, Desktop: desktop}
+		request := domain.Request{TaskID: "companion", CallID: "write", HostID: h.ID, Operation: "terminal_write", Resource: id, Content: "cd /tmp && export NEXSHELL_COMPANION=ready\n"}
+		if r, err := ex.Execute(ctx, request); err != nil || r.Status != "succeeded" {
+			t.Fatal(r, err)
+		}
+		request.CallID = "check"
+		request.Content = "printf '%s:%s\\n' \"$NEXSHELL_COMPANION\" \"$PWD\"\n"
+		if r, err := ex.Execute(ctx, request); err != nil || r.Status != "succeeded" {
+			t.Fatal(r, err)
+		}
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			out, err := desktop.Perform(ctx, domain.Request{HostID: h.ID, Operation: "terminal_read", Resource: id})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(out, "ready:/tmp") {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatal("same-shell environment and working directory not preserved", out)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		currentDir, err := m.TerminalDirectory(ctx, h.ID, session)
+		if err != nil || currentDir != "/tmp" {
+			t.Fatal("directory did not follow cd", currentDir, err)
+		}
+		local := filepath.Join(t.TempDir(), "drop.txt")
+		os.WriteFile(local, []byte("drop upload baseline"), 0600)
+		if err := m.UploadNew(ctx, h.ID, local, "/tmp/drop.txt", nil); err != nil {
+			t.Fatal(err)
+		}
+		os.WriteFile(local, []byte("must not overwrite"), 0600)
+		if err := m.UploadNew(ctx, h.ID, local, "/tmp/drop.txt", nil); err == nil {
+			t.Fatal("exclusive upload overwrote existing file")
+		}
+		content, _, err := m.ReadFile(ctx, h.ID, "/tmp/drop.txt")
+		if err != nil || string(content) != "drop upload baseline" {
+			t.Fatal("upload baseline changed", err)
+		}
+
+	})
 	t.Run("eino_approval_execution_verification", func(t *testing.T) {
+		if _, e := m.WriteFile(ctx, h.ID, "/tmp/fixture/repair.conf", "new", []byte("enabled=false\n")); e != nil {
+			t.Fatal(e)
+		}
 		profile := domain.ModelProfile{ID: "test-model", Provider: "openai", Model: "deterministic", ContextTokens: 32000}
 		s.Put("models", profile.ID, profile)
 		ex := &remote.Executor{Manager: m, Store: s}
@@ -333,7 +406,7 @@ func TestLinuxLab(t *testing.T) {
 		service.ModelFactory = func(context.Context, domain.ModelProfile, remote.Secrets) (model.ToolCallingChatModel, error) {
 			return fake, nil
 		}
-		task, e := service.NewTask("检查并验证健康基线", profile.ID, []string{h.ID}, []string{"observe", "file_read"}, []string{"/tmp/fixture/healthy.txt"})
+		task, e := service.NewTask("将受控配置 enabled 改为 true，并验证健康基线不变", profile.ID, []string{h.ID}, []string{"observe", "file_read", "file_write"}, []string{"/tmp/fixture/repair.conf"})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -369,13 +442,21 @@ func TestLinuxLab(t *testing.T) {
 		}
 		await("completed")
 		results, _ = s.Results(task.ID)
-		if len(results) != 2 {
+		if len(results) != 4 {
 			t.Fatalf("unexpected execution count %d", len(results))
 		}
 		for _, r := range results {
 			if r.Status != "succeeded" {
 				t.Fatal(r)
 			}
+		}
+		changed, _, e := m.ReadFile(ctx, h.ID, "/tmp/fixture/repair.conf")
+		if e != nil || string(changed) != "enabled=true\n" {
+			t.Fatal("agent did not apply the real configuration change", e)
+		}
+		healthy, _, e := m.ReadFile(ctx, h.ID, "/tmp/fixture/healthy.txt")
+		if e != nil || string(healthy) != "healthy baseline\n" {
+			t.Fatal("known good baseline changed", e)
 		}
 	})
 }
@@ -401,15 +482,32 @@ func (m *scenarioModel) Generate(ctx context.Context, messages []*schema.Message
 	case 0:
 		return call("shell-1", "operate", agent.OperationInput{HostID: "lab", Operation: "shell", Command: "printf 'approved execution'"}), nil
 	case 1:
-		return call("read-1", "operate", agent.OperationInput{HostID: "lab", Operation: "file_read", Resource: "/tmp/fixture/healthy.txt"}), nil
+		return call("read-1", "operate", agent.OperationInput{HostID: "lab", Operation: "file_read", Resource: "/tmp/fixture/repair.conf"}), nil
 	case 2:
+		for i := len(messages) - 1; i >= 0; i-- {
+			if messages[i].Role == schema.Tool {
+				var result domain.Result
+				var file map[string]string
+				if e := json.Unmarshal([]byte(messages[i].Content), &result); e != nil {
+					return nil, e
+				}
+				if e := json.Unmarshal([]byte(result.Output), &file); e != nil {
+					return nil, e
+				}
+				return call("write-1", "operate", agent.OperationInput{HostID: "lab", Operation: "file_write", Resource: "/tmp/fixture/repair.conf", Content: "enabled=true\n", ExpectedHash: file["sha256"]}), nil
+			}
+		}
+		return nil, errors.New("missing original file hash")
+	case 3:
+		return call("read-2", "operate", agent.OperationInput{HostID: "lab", Operation: "file_read", Resource: "/tmp/fixture/repair.conf"}), nil
+	case 4:
 		for i := len(messages) - 1; i >= 0; i-- {
 			if messages[i].Role == schema.Tool {
 				var r domain.Result
 				if e := json.Unmarshal([]byte(messages[i].Content), &r); e != nil {
 					return nil, fmt.Errorf("parse tool result: %w", e)
 				}
-				return call("verify-1", "verify_execution", agent.VerifyInput{ExecutionID: r.ID, ExpectedText: "healthy baseline"}), nil
+				return call("verify-1", "verify_execution", agent.VerifyInput{ExecutionID: r.ID, ExpectedText: "enabled=true"}), nil
 			}
 		}
 		return nil, errors.New("missing evidence")

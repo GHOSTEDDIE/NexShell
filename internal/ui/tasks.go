@@ -5,38 +5,120 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/agent"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
 	"strings"
-	"time"
 )
 
 func (u *App) agentPanel() fyne.CanvasObject {
-	u.taskStatus = widget.NewLabel("尚未选择任务")
+	u.taskStatus = widget.NewLabel("")
+	u.taskStatus.SizeName = sizeMeta
+	u.taskStatus.Importance = widget.LowImportance
+	u.taskStatus.Hide()
 	u.taskText = newReadOnly()
-	u.taskText.Wrapping = fyne.TextWrapWord
-	u.taskText.SetPlaceHolder("在这里查看计划、操作与验证结果")
+	u.conversationView = newConversationView()
 	u.taskList = widget.NewSelect(nil, func(label string) {
 		tasks, _ := store.All[domain.Task](u.Store, "tasks")
 		for _, t := range tasks {
-			if strings.HasPrefix(label, t.ID[:8]+" · ") {
+			if strings.HasPrefix(label, shortID(t.ID)+" · ") {
 				u.taskID = t.ID
+				u.updateTask()
 				break
 			}
 		}
-		u.updateTask()
 	})
 	u.taskList.PlaceHolder = "选择任务"
-	input := widget.NewMultiLineEntry()
-	input.SetPlaceHolder("补充运维目标或约束…")
-	input.SetMinRowsVisible(3)
-	return container.NewBorder(container.NewVBox(widget.NewLabelWithStyle("运维助手", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}), u.taskList, u.taskStatus, widget.NewButton("新建运维任务", u.newTaskDialog)), container.NewVBox(input, container.NewGridWithColumns(2, widget.NewButton("发送", func() {
+	input := newChatInput()
+	input.SetPlaceHolder("继续提问，或描述你想完成的操作…")
+	send := func() {
 		id, text := u.taskID, input.Text
+		if strings.TrimSpace(text) == "" {
+			return
+		}
+		if id == "" {
+			u.newConversationDialog(text, func() { input.SetText("") })
+			return
+		}
+		text = u.conversationInput(id, text)
 		input.SetText("")
 		u.work("发送指令", func() error { return u.Agent.Submit(id, text) })
-	}), widget.NewButton("停止", func() { u.Agent.Cancel(u.taskID) })), container.NewGridWithColumns(2, widget.NewButton("待确认操作", u.approvalDialog), widget.NewButton("恢复任务", func() { id := u.taskID; u.work("恢复任务", func() error { return u.Agent.Resume(id) }) }))), nil, nil, u.taskText)
+	}
+	input.Submit = send
+	u.modelSelect = widget.NewSelect(nil, nil)
+	u.modelSelect.PlaceHolder = "默认模型"
+	u.refreshModelChoices()
+	u.modelSelect.OnChanged = func(label string) {
+		profiles, _ := store.All[domain.ModelProfile](u.Store, "models")
+		for _, p := range profiles {
+			if p.Name+" · "+p.Model == label {
+				u.preferredModel = p.ID
+				if u.taskID != "" {
+					var t domain.Task
+					if u.Store.Load("tasks", u.taskID, &t) == nil && t.ProfileID != p.ID {
+						u.taskID = ""
+						u.updateTask()
+						u.conversationView.reset("")
+					}
+				}
+				break
+			}
+		}
+	}
+	var menuButton *actionButton
+	menuButton = action("", designIcon("more"), func() {
+		history := func() { dialog.ShowCustom("历史对话", "关闭", sized(u.taskList, 480, 36), u.Window) }
+		menu := fyne.NewMenu("", fyne.NewMenuItem("新对话", func() { u.newConversationDialog("") }), fyne.NewMenuItem("历史对话", history), fyne.NewMenuItem("运维任务", u.newTaskDialog), fyne.NewMenuItem("待确认操作", u.approvalDialog), fyne.NewMenuItem("恢复任务", func() { id := u.taskID; u.work("恢复任务", func() error { return u.Agent.Resume(id) }) }))
+		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(menuButton).Add(fyne.NewPos(0, 30)))
+	})
+	header := sized(inset(container.NewBorder(nil, nil, container.NewHBox(widget.NewIcon(designIcon("spark")), headingText("助手")), container.NewHBox(menuButton, action("", designIcon("close"), u.toggleAssistant))), 0, 14, 0, 18), 0, 38)
+	u.assistantContext = metaText("尚未连接服务器")
+	context := inset(container.NewBorder(nil, nil, inset(widget.NewIcon(designIcon("server")), 0, 8, 0, 0), nil, u.assistantContext), 12, 18, 12, 18)
+	sendButton := action("", designIcon("send"), send)
+	sendButton.primary = true
+	u.stopAction = action("停止", nil, func() { u.Agent.Cancel(u.taskID) })
+	u.stopAction.Hide()
+	u.approvalAction = action("待确认操作", nil, u.approvalDialog)
+	u.approvalAction.Hide()
+	tools := container.NewBorder(nil, nil, nil, container.NewHBox(action("", designIcon("settings"), u.modelDialog), sendButton), u.modelSelect)
+	compose := panel(padded(container.NewVBox(container.NewThemeOverride(input, componentTheme{body: true, clearInput: true}), tools), 10), theme.ColorNameBackground, true, 7)
+	bottom := inset(container.NewVBox(container.NewHBox(u.taskStatus, u.stopAction, u.approvalAction), compose, metaText("Enter 发送 · Shift + Enter 换行")), 4, 16, 12, 16)
+	return edge(edge(header, nil, nil, nil, context), bottom, nil, nil, u.conversationView.scroll)
+}
+func (u *App) refreshModelChoices() {
+	if u.modelSelect == nil {
+		return
+	}
+	profiles, e := store.All[domain.ModelProfile](u.Store, "models")
+	if e != nil {
+		u.error(e)
+		return
+	}
+	options := []string{}
+	for _, p := range profiles {
+		options = append(options, p.Name+" · "+p.Model)
+	}
+	callback := u.modelSelect.OnChanged
+	u.modelSelect.OnChanged = nil
+	u.modelSelect.Options = options
+	if len(options) > 0 {
+		index := 0
+		for i, p := range profiles {
+			if p.ID == u.preferredModel {
+				index = i
+				break
+			}
+		}
+		u.modelSelect.SetSelected(options[index])
+		u.preferredModel = profiles[index].ID
+	} else {
+		u.modelSelect.ClearSelected()
+		u.preferredModel = ""
+	}
+	u.modelSelect.Refresh()
+	u.modelSelect.OnChanged = callback
 }
 func (u *App) newTaskDialog() {
 	names, ids := u.hostChoices()
@@ -103,7 +185,7 @@ func (u *App) refreshTasks() {
 		if len(goal) > 18 {
 			goal = goal[:18]
 		}
-		label := t.ID[:8] + " · " + string(goal)
+		label := shortID(t.ID) + " · " + string(goal)
 		labels = append(labels, label)
 		if t.ID == u.taskID {
 			selected = label
@@ -113,71 +195,6 @@ func (u *App) refreshTasks() {
 	u.taskList.Refresh()
 	if selected != "" {
 		u.taskList.SetSelected(selected)
-	}
-}
-func (u *App) updateTask() {
-	if u.taskID == "" {
-		return
-	}
-	var t domain.Task
-	if u.Store.Load("tasks", u.taskID, &t) != nil {
-		return
-	}
-	states := map[string]string{"ready": "就绪", "running": "运行中", "awaiting_approval": "等待确认", "interrupted": "已暂停", "failed": "执行失败", "completed": "验证完成", "needs_verification": "等待验证"}
-	u.taskStatus.SetText(states[t.Status])
-	events, e := u.Store.Events(u.taskID, 0)
-	if e != nil {
-		return
-	}
-	var b strings.Builder
-	for _, event := range events {
-		switch event.Kind {
-		case "assistant_delta":
-			b.WriteString(event.Text)
-		case "user":
-			fmt.Fprintf(&b, "\n\n你：%s\n\n", event.Text)
-		case "assistant":
-			b.WriteString(event.Text)
-		case "execution_start":
-			fmt.Fprintf(&b, "\n\n执行：%s\n", event.Text)
-		case "execution_result":
-			fmt.Fprintf(&b, "\n%s\n", event.Text)
-		case "execution_delta":
-			// The result event includes the completed preview; avoid duplicating it.
-			if t.Status == "running" {
-				b.WriteString(event.Text)
-			}
-		case "verified":
-			fmt.Fprintf(&b, "\n验证：%s\n", event.Text)
-		case "approval_required":
-			b.WriteString("\n需要确认具体操作，请点击“待确认操作”。\n")
-		}
-	}
-	if t.Status == "failed" {
-		fmt.Fprintf(&b, "\n%s", t.Summary)
-	}
-	text := b.String()
-	if u.taskText.Text != text {
-		u.taskText.SetText(text)
-	}
-}
-func (u *App) watchTasks() {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			fyne.Do(func() {
-				select {
-				case <-u.ctx.Done():
-					return
-				default:
-				}
-				u.updateTask()
-			})
-		case <-u.ctx.Done():
-			return
-		}
 	}
 }
 func (u *App) approvalDialog() {

@@ -46,3 +46,15 @@ Linux 集成测试验证：错误密码、首次指纹核对、密钥变化阻�
 - 桌面审计保存在本机，不提供不可篡改证明或团队审计服务。
 
 安装包、最终测试日志和校验值以 `dist` 与 `docs/evidence` 中实际生成的文件为准。
+
+## NexShell 最终交付
+
+产品更名后，重新构建并核对了以下产物：
+
+- `dist/NexShell-darwin-arm64.zip`：本地临时签名的 macOS 应用，签名校验通过；尚未进行 Apple 公证。
+- `dist/NexShell-linux-arm64.tar.gz`：Linux arm64 原生程序及许可证。
+- `dist/NexShell-windows-amd64.zip`：Windows amd64 GUI 程序及许可证；尚未进行发行商代码签名。
+
+最终回归记录为 `evidence/nexshell-unit-race.txt`、`evidence/nexshell-linux-integration.txt` 和 `evidence/nexshell-vet.txt`。Linux 集成场景包含 Agent 读取原始哈希、在授权范围内修改真实配置、重新读取验证，以及健康基线保持不变的检查。退出流程在后台关闭连接，避免界面线程等待失联 SSH。
+
+`evidence/release-source.json` 记录构建快照的文件哈希，`evidence/SHA256SUMS` 记录安装包哈希。所有压缩包已检查成员与许可证，ZIP 校验通过。构建与这些检查不替代上文列出的实机和真实模型验收。

@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -16,29 +15,40 @@ import (
 	"io"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type workspace struct {
-	u            *App
-	host         domain.Host
-	session      *remote.TerminalSession
-	terminal     *terminal.View
-	terminals    []*terminal.View
-	sessions     []*remote.TerminalSession
-	tab          *container.TabItem
-	ctx          context.Context
-	cancel       context.CancelFunc
-	once         sync.Once
-	files        []remote.FileEntry
-	fileList     *widget.List
-	dir          *widget.Entry
-	selectedFile int
-	transfers    *fyne.Container
-	routers      []*transfer.Router
+	monitor         fyne.CanvasObject
+	listedDirectory string
+	activeSession   atomic.Pointer[remote.TerminalSession]
+	fileArea        fyne.CanvasObject
+	bottomTabs      *tabView
+	fileTab         *container.TabItem
+	followDirectory *widget.Check
+	directoryStatus *widget.Label
+	terminalIDs     []string
+	u               *App
+	host            domain.Host
+	session         *remote.TerminalSession
+	terminal        *terminal.View
+	terminals       []*terminal.View
+	sessions        []*remote.TerminalSession
+	tab             *container.TabItem
+	ctx             context.Context
+	cancel          context.CancelFunc
+	once            sync.Once
+	files           []remote.FileEntry
+	fileList        *widget.List
+	dir             *widget.Entry
+	selectedFile    int
+	transfers       *fyne.Container
+	routers         []*transfer.Router
 }
 
 func (u *App) newWorkspace(h domain.Host, s *remote.TerminalSession) *workspace {
@@ -48,17 +58,27 @@ func (u *App) newWorkspace(h domain.Host, s *remote.TerminalSession) *workspace 
 	w.terminal.OnResize = func(rows, cols int) { _ = s.Resize(rows, cols) }
 	w.terminals = []*terminal.View{w.terminal}
 	w.sessions = []*remote.TerminalSession{s}
-	find := widget.NewEntry()
-	find.SetPlaceHolder("搜索终端输出")
-	find.OnSubmitted = func(q string) { count := w.terminal.Search(q); u.status.SetText(fmt.Sprintf("找到 %d 行", count)) }
+	w.activeSession.Store(s)
+	w.monitor = w.monitorPane()
+	w.layoutWorkspace()
+	go w.watchDirectory()
+	return w
+}
+
+func (w *workspace) layoutWorkspace() {
+	u, h, ctx := w.u, w.host, w.ctx
 	holder := container.NewStack(w.terminal)
-	toolbar := container.NewHBox(widget.NewLabel(h.User+"@"+h.Address), widget.NewButton("分屏", func() {
+	splitButton := action("", designIcon("split"), func() {
 		u.work("创建分屏", func() error {
 			next, e := u.Manager.Terminal(ctx, h.ID, 24, 80)
 			if e != nil {
 				return e
 			}
 			fyne.Do(func() {
+				if ctx.Err() != nil {
+					go next.Close()
+					return
+				}
 				v := w.newTerminal(next)
 				v.OnResize = func(r, c int) { _ = next.Resize(r, c) }
 				w.terminals = append(w.terminals, v)
@@ -69,26 +89,77 @@ func (u *App) newWorkspace(h domain.Host, s *remote.TerminalSession) *workspace 
 			})
 			return nil
 		})
-	}), widget.NewButton("A−", func() {
-		w.terminal.SetFontSize(float32(u.UI.Preferences().FloatWithFallback("terminal.size", 14) - 1))
-		u.UI.Preferences().SetFloat("terminal.size", u.UI.Preferences().FloatWithFallback("terminal.size", 14)-1)
-	}), widget.NewButton("A+", func() {
-		size := u.UI.Preferences().FloatWithFallback("terminal.size", 14) + 1
-		u.UI.Preferences().SetFloat("terminal.size", size)
-		w.terminal.SetFontSize(float32(size))
-	}), widget.NewButton("关闭", func() { w.close(); u.tabs.Remove(w.tab) }))
-	terminalPane := container.NewBorder(container.NewBorder(nil, nil, toolbar, nil, find), w.commandBar(), nil, nil, holder)
+	})
+	var more *actionButton
+	more = action("", designIcon("more"), func() {
+		search := func() {
+			find := widget.NewEntry()
+			find.SetPlaceHolder("搜索终端输出")
+			find.OnSubmitted = func(q string) { count := w.terminal.Search(q); u.status.SetText(fmt.Sprintf("找到 %d 行", count)) }
+			dialog.ShowCustom("搜索终端", "关闭", sized(find, 440, 36), u.Window)
+		}
+		menu := fyne.NewMenu("", fyne.NewMenuItem("搜索终端输出", search), fyne.NewMenuItem("快捷命令", u.snippetsDialog), fyne.NewMenuItem("命令输入栏", func() { dialog.ShowCustom("执行命令", "关闭", sized(w.commandBar(), 650, 40), u.Window) }), fyne.NewMenuItem("终端字号", func() { u.settingsDialog("appearance") }), fyne.NewMenuItem("关闭会话", func() { u.closeWorkspace(w.tab) }))
+		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
+	})
+	badge := panel(padded(textUI("已连接", sizeMeta, theme.ColorNameSuccess, false), 4), colorSuccessBG, false, 4)
+	toolbar := sized(inset(container.NewBorder(nil, nil, container.NewHBox(textUI(h.User+" @ "+h.Address, sizeControl, colorMuted, false), badge), container.NewHBox(splitButton, more)), 6, 18, 6, 18), 0, 44)
+	terminalPane := edge(toolbar, nil, nil, nil, panel(inset(holder, 20, 22, 20, 22), "terminalBackground", false, 0))
 	w.transfers = container.NewVBox()
-	bottom := container.NewAppTabs(container.NewTabItem("文件", w.filePane()), container.NewTabItem("监控", w.monitorPane()), container.NewTabItem("传输", container.NewVScroll(w.transfers)), container.NewTabItem("网络诊断", w.networkPane()))
-	split := container.NewVSplit(terminalPane, bottom)
-	split.Offset = .64
-	w.tab = container.NewTabItem(h.Name, split)
-	w.refreshFiles()
-	return w
+	w.fileArea = w.filePane()
+	w.fileTab = container.NewTabItem("文件", w.fileArea)
+	w.bottomTabs = newTabView(false, w.fileTab, container.NewTabItem("传输", container.NewVScroll(w.transfers)), container.NewTabItem("网络诊断", w.networkPane()))
+	w.tab = container.NewTabItemWithIcon(h.Name, fyne.NewStaticResource("connected.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><circle cx="9" cy="9" r="3" fill="#51ac83"/></svg>`)), container.New(terminalFileLayout{}, terminalPane, w.bottomTabs))
 }
+
+type terminalFileLayout struct{}
+
+func (terminalFileLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(480, 500) }
+func (terminalFileLayout) Layout(o []fyne.CanvasObject, s fyne.Size) {
+	bottom := float32(250)
+	if s.Height < 750 {
+		bottom = 220
+	}
+	o[0].Move(fyne.NewPos(0, 0))
+	o[0].Resize(fyne.NewSize(s.Width, max(180, s.Height-bottom)))
+	o[1].Move(fyne.NewPos(0, s.Height-bottom))
+	o[1].Resize(fyne.NewSize(s.Width, bottom))
+}
+
+// closeWorkspace runs on the UI thread. Drop ownership before waiting on any
+// network cleanup, so a slow peer cannot block closing or retain dead tabs.
+func (u *App) closeWorkspace(item *container.TabItem) {
+	if item == u.homeTab {
+		return
+	}
+	for i, w := range u.workspaces {
+		if w.tab != item {
+			continue
+		}
+		u.workspaces = slices.Delete(u.workspaces, i, i+1)
+		w.cancel()
+		for _, id := range w.terminalIDs {
+			u.terminalsDesktop.Remove(id)
+		}
+		go w.close()
+		break
+	}
+	u.tabs.Remove(item)
+	if len(u.tabs.Items) == 0 {
+		u.tabs.Append(u.homeTab)
+		u.tabs.Select(u.homeTab)
+	}
+	// Fyne 2.8 Remove shortens Items without clearing the removed tail slot.
+	// Clear that capacity too, otherwise its backing array retains tab content.
+	clear(u.tabs.Items[len(u.tabs.Items):cap(u.tabs.Items)])
+	u.selectWorkspace(u.tabs.Selected())
+}
+
 func (w *workspace) close() {
 	w.once.Do(func() {
 		w.cancel()
+		for _, id := range w.terminalIDs {
+			w.u.terminalsDesktop.Remove(id)
+		}
 		for _, s := range w.sessions {
 			s.Close()
 		}
@@ -102,29 +173,56 @@ func (w *workspace) close() {
 }
 func (w *workspace) filePane() fyne.CanvasObject {
 	w.dir = widget.NewEntry()
-	w.dir.SetText("/")
+	w.dir.SetPlaceHolder("正在读取终端目录…")
 	w.dir.OnSubmitted = func(string) { w.refreshFiles() }
-	w.fileList = widget.NewList(func() int { return len(w.files) }, func() fyne.CanvasObject {
-		return container.NewBorder(nil, nil, widget.NewIcon(theme.FileIcon()), widget.NewLabel("大小"), widget.NewLabel("文件名"))
-	}, func(i widget.ListItemID, obj fyne.CanvasObject) {
-		f := w.files[i]
-		box := obj.(*fyne.Container)
-		box.Objects[0].(*widget.Label).SetText(f.Name)
-		box.Objects[2].(*widget.Label).SetText(fmt.Sprintf("%d B", f.Size))
-		icon := box.Objects[1].(*widget.Icon)
-		if f.IsDir {
-			icon.SetResource(theme.FolderIcon())
-		} else {
-			icon.SetResource(theme.FileIcon())
+	w.directoryStatus = widget.NewLabel("")
+	w.directoryStatus.SizeName = sizeMeta
+	w.directoryStatus.Importance = widget.LowImportance
+	w.followDirectory = widget.NewCheck("跟随终端目录", nil)
+	w.followDirectory.SetChecked(true)
+	w.followDirectory.OnChanged = func(enabled bool) {
+		if enabled {
+			w.dir.SetText("")
 		}
-
+	}
+	w.fileList = widget.NewList(func() int { return len(w.files) }, func() fyne.CanvasObject { return newFileRow() }, func(i widget.ListItemID, obj fyne.CanvasObject) {
+		row := obj.(*fileRow)
+		row.setEntry(w.files[i])
+		row.open = func() { w.selectedFile = i; w.openSelected() }
+		row.selectFile = func() { w.fileList.Select(i) }
+		row.menu = func(pos fyne.Position) {
+			w.selectedFile = i
+			widget.NewPopUpMenu(w.fileMenu(), w.u.Window.Canvas()).ShowAtPosition(pos)
+		}
 	})
+	w.fileList.HideSeparators = true
 	w.fileList.OnSelected = func(i widget.ListItemID) { w.selectedFile = i }
-	actions := container.NewHBox(widget.NewButton("打开", w.openSelected), widget.NewButton("上传", w.upload), widget.NewButton("下载", w.download), widget.NewButton("新建目录", w.mkdir), widget.NewButton("重命名", w.rename), widget.NewButton("权限", w.permissions), widget.NewButton("压缩", w.compress), widget.NewButton("删除", w.remove), widget.NewButton("终端进入目录", func() { w.terminal.Send("cd -- " + remote.Quote(w.dir.Text) + "\r") }))
-	return container.NewBorder(container.NewVBox(container.NewBorder(nil, nil, widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() { w.dir.SetText(path.Dir(w.dir.Text)); w.refreshFiles() }), widget.NewButtonWithIcon("", theme.ViewRefreshIcon(), w.refreshFiles), w.dir), container.NewHScroll(actions)), nil, nil, nil, w.fileList)
+	var more *actionButton
+	more = action("", designIcon("more"), func() {
+		widget.NewPopUpMenu(w.fileMenu(), w.u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
+	})
+	tools := container.NewHBox(action("", designIcon("refresh"), w.refreshFiles), action("", designIcon("upload"), w.upload), action("", designIcon("folder"), w.mkdir), more)
+	back := action("", designIcon("arrow-left"), func() { w.dir.SetText(path.Dir(w.dir.Text)); w.refreshFiles() })
+	toolbar := sized(inset(container.NewBorder(nil, nil, back, tools, container.NewThemeOverride(w.dir, componentTheme{clearInput: true})), 3, 12, 3, 12), 0, 42)
+	header := panel(sized(container.New(fileColumns{}, metaText("名称"), metaText("大小"), metaText("修改时间")), 0, 30), colorSoft, false, 0)
+	return edge(edge(toolbar, nil, nil, nil, header), nil, nil, nil, w.fileList)
+}
+func (w *workspace) fileMenu() *fyne.Menu {
+	follow := fyne.NewMenuItem("跟随终端目录", func() { w.followDirectory.SetChecked(!w.followDirectory.Checked) })
+	follow.Checked = w.followDirectory.Checked
+	return fyne.NewMenu("", fyne.NewMenuItem("打开", w.openSelected), fyne.NewMenuItem("下载", w.download), fyne.NewMenuItem("重命名", w.rename), fyne.NewMenuItem("权限", w.permissions), fyne.NewMenuItem("压缩", w.compress), fyne.NewMenuItem("删除", w.remove), fyne.NewMenuItemSeparator(), follow, fyne.NewMenuItem("终端进入目录", func() { w.terminal.Send("cd -- " + remote.Quote(w.dir.Text) + "\r") }))
 }
 func (w *workspace) refreshFiles() {
 	dir := w.dir.Text
+	if dir == "" {
+		return
+	}
+	if w.listedDirectory != dir {
+		w.files = nil
+		w.selectedFile = -1
+		w.fileList.UnselectAll()
+		w.fileList.Refresh()
+	}
 	w.u.work("读取目录", func() error {
 		files, e := w.u.Manager.List(w.ctx, w.host.ID, dir)
 		if e != nil {
@@ -134,6 +232,7 @@ func (w *workspace) refreshFiles() {
 			if w.dir.Text != dir || w.ctx.Err() != nil {
 				return
 			}
+			w.listedDirectory = dir
 			w.files = files
 			w.selectedFile = -1
 			w.fileList.UnselectAll()
@@ -143,7 +242,7 @@ func (w *workspace) refreshFiles() {
 	})
 }
 func (w *workspace) selection() (remote.FileEntry, string, bool) {
-	if w.selectedFile < 0 || w.selectedFile >= len(w.files) {
+	if w.listedDirectory != w.dir.Text || w.selectedFile < 0 || w.selectedFile >= len(w.files) {
 		w.u.error(fmt.Errorf("请选择文件"))
 		return remote.FileEntry{}, "", false
 	}
@@ -189,7 +288,7 @@ func (w *workspace) openSelected() {
 		return nil
 	})
 }
-func (w *workspace) transfer(local, remotePath string, upload, resume bool) {
+func (w *workspace) transfer(local, remotePath string, upload, resume bool, exclusive ...bool) {
 	ctx, cancel := context.WithCancel(w.ctx)
 	label := widget.NewLabel(path.Base(remotePath))
 	progress := widget.NewLabel("等待传输")
@@ -198,13 +297,19 @@ func (w *workspace) transfer(local, remotePath string, upload, resume bool) {
 	go func() {
 		defer cancel()
 		var last time.Time
-		err := w.u.Manager.Transfer(ctx, w.host.ID, local, remotePath, upload, resume, func(n int64) {
+		progressFn := func(n int64) {
 			if time.Since(last) < 100*time.Millisecond {
 				return
 			}
 			last = time.Now()
 			fyne.Do(func() { progress.SetText(fmt.Sprintf("%d 字节", n)) })
-		})
+		}
+		var err error
+		if len(exclusive) > 0 && exclusive[0] {
+			err = w.u.Manager.UploadNew(ctx, w.host.ID, local, remotePath, progressFn)
+		} else {
+			err = w.u.Manager.Transfer(ctx, w.host.ID, local, remotePath, upload, resume, progressFn)
+		}
 		fyne.Do(func() {
 			if err != nil {
 				progress.SetText("失败：" + err.Error())
@@ -226,10 +331,7 @@ func (w *workspace) upload() {
 		}
 		local := r.URI().Path()
 		r.Close()
-		dest := path.Join(w.dir.Text, path.Base(local))
-		var d dialog.Dialog
-		d = dialog.NewCustom("上传文件", "取消", container.NewVBox(widget.NewLabel(dest), container.NewHBox(widget.NewButton("校验并续传", func() { d.Hide(); w.transfer(local, dest, true, true) }), widget.NewButton("覆盖上传", func() { d.Hide(); w.transfer(local, dest, true, false) }))), w.u.Window)
-		d.Show()
+		w.queueUploads([]string{local}, w.dir.Text)
 	}, w.u.Window)
 }
 func (w *workspace) download() {
@@ -371,61 +473,6 @@ func (w *workspace) compress() {
 		}
 		return e
 	})
-}
-func (w *workspace) monitorPane() fyne.CanvasObject {
-	status := widget.NewLabel("等待采样")
-	cpu := widget.NewProgressBar()
-	memory := widget.NewProgressBar()
-	cpuText := widget.NewLabel("处理器")
-	memoryText := widget.NewLabel("内存")
-	text := newReadOnly()
-	text.TextStyle = fyne.TextStyle{Monospace: true}
-	panels := container.NewBorder(container.NewVBox(status, container.NewGridWithColumns(2, container.NewVBox(cpuText, cpu), container.NewVBox(memoryText, memory))), nil, nil, nil, text)
-	go func() {
-		var prev *remote.Snapshot
-		ticker := time.NewTicker(3 * time.Second)
-		defer ticker.Stop()
-		for {
-			snap, e := w.u.Manager.Monitor(w.ctx, w.host.ID, prev)
-			if e == nil {
-				prev = &snap
-			}
-			fyne.Do(func() {
-				if e != nil {
-					status.SetText("采集失败：" + e.Error())
-					return
-				}
-				status.SetText("更新于 " + snap.At.Format("15:04:05"))
-				if value, ok := snap.CPU.Value.(float64); ok {
-					cpu.SetValue(value / 100)
-					cpuText.SetText(fmt.Sprintf("处理器 %.1f%%", value))
-				} else {
-					cpuText.SetText("处理器：等待下一次采样")
-				}
-				if mem, ok := snap.Memory.Value.(map[string]uint64); ok {
-					memory.SetValue(float64(mem["used"]) / float64(mem["total"]))
-					memoryText.SetText(fmt.Sprintf("内存 %.1f / %.1f GiB", float64(mem["used"])/(1<<30), float64(mem["total"])/(1<<30)))
-				}
-				format := func(m remote.Metric) string {
-					if m.State != "ok" {
-						return "采集不可用：" + m.Error
-					}
-					if v, ok := m.Value.(string); ok {
-						return v
-					}
-					b, _ := json.MarshalIndent(m.Value, "", "  ")
-					return string(b)
-				}
-				text.SetText("系统\n" + format(snap.System) + "\n\n负载\n" + format(snap.Load) + "\n\n磁盘\n" + format(snap.Disks) + "\n\n网卡（每秒字节）\n" + format(snap.Network) + "\n\n进程\n" + format(snap.Processes) + "\n\n端口连接\n" + format(snap.Ports))
-			})
-			select {
-			case <-ticker.C:
-			case <-w.ctx.Done():
-				return
-			}
-		}
-	}()
-	return panels
 }
 func (w *workspace) networkPane() fyne.CanvasObject {
 	target := widget.NewEntry()

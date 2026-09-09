@@ -54,6 +54,7 @@ type Grant struct {
 }
 
 type Task struct {
+	Mode      string    `json:"mode,omitempty"`
 	ID        string    `json:"id"`
 	Goal      string    `json:"goal"`
 	ProfileID string    `json:"profile_id"`

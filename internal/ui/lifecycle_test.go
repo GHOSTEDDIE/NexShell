@@ -1,0 +1,50 @@
+package ui
+
+import (
+	"context"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/test"
+	"fyne.io/fyne/v2/widget"
+	"github.com/GHOSTEDDIE/nexshell/internal/agent"
+	"github.com/GHOSTEDDIE/nexshell/internal/remote"
+	"github.com/GHOSTEDDIE/nexshell/internal/store"
+	"testing"
+)
+
+func TestAuditClosedWorkspaceReleased(t *testing.T) {
+	a := test.NewApp()
+	defer a.Quit()
+	s, e := store.Open(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	m, e := remote.NewManager(s, store.Credentials{}, s.Dir)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer m.Close()
+	ex := &remote.Executor{Manager: m, Store: s}
+	ag := agent.NewService(s, ex, store.Credentials{})
+	defer ag.Close()
+	u := New(a, s, m, ex, ag)
+	defer func() { u.cancel(); u.Window.SetCloseIntercept(nil); u.Window.Close() }()
+	ctx, cancel := context.WithCancel(u.ctx)
+	ws := &workspace{u: u, ctx: ctx, cancel: cancel, tab: container.NewTabItem("audit", widget.NewLabel("terminal"))}
+	u.workspaces = append(u.workspaces, ws)
+	u.tabs.Append(ws.tab)
+	u.tabs.CloseIntercept(ws.tab)
+	for _, item := range u.tabs.Items[:cap(u.tabs.Items)] {
+		if item == ws.tab {
+			t.Error("closed tab retained in backing array")
+		}
+	}
+	if ctx.Err() == nil {
+		t.Fatal("workspace was not closed")
+	}
+	for _, retained := range u.workspaces {
+		if retained == ws {
+			t.Fatal("closed workspace still reachable from App.workspaces; terminal core and history cannot be collected")
+		}
+	}
+}

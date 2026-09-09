@@ -1,10 +1,11 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/theme"
 	"github.com/GHOSTEDDIE/nexshell/internal/agent"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
@@ -12,6 +13,9 @@ import (
 	"os"
 	"path/filepath"
 )
+
+//go:embed assets/nexshell-icon.png
+var appIcon []byte
 
 func main() {
 	data := flag.String("data-dir", "", "本地配置与任务目录")
@@ -38,7 +42,7 @@ func main() {
 	executor := &remote.Executor{Manager: m, Store: s}
 	agents := agent.NewService(s, executor, secrets)
 	a := app.NewWithID("io.nexshell.desktop")
-	a.Settings().SetTheme(theme.DarkTheme())
+	a.SetIcon(fyne.NewStaticResource("nexshell-icon.png", appIcon))
 	ui.New(a, s, m, executor, agents).Show()
 }
 func fatal(e error) { fmt.Fprintln(os.Stderr, e); os.Exit(1) }

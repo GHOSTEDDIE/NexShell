@@ -1,0 +1,7 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	2.595s
+ok  	github.com/GHOSTEDDIE/nexshell/internal/terminal	0.575s
+ok  	github.com/GHOSTEDDIE/nexshell/internal/remote	1.972s

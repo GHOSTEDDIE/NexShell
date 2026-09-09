@@ -17,7 +17,10 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
+const DefaultFontSize float32 = 12
+
 type View struct {
+	OnFocus func()
 	widget.BaseWidget
 	Core                         *Core
 	OnResize                     func(int, int)
@@ -39,7 +42,7 @@ type View struct {
 }
 
 func NewView(input io.Writer, output io.Reader, errorHandlers ...func(error)) *View {
-	v := &View{Core: NewCore(80, 24), fontSize: 14, cols: 80, rows: 24, keys: make(chan func(), 256), done: make(chan struct{}), selectionStart: -1, selectionEnd: -1}
+	v := &View{Core: NewCore(80, 24), fontSize: DefaultFontSize, cols: 80, rows: 24, keys: make(chan func(), 256), done: make(chan struct{}), selectionStart: -1, selectionEnd: -1}
 	if len(errorHandlers) > 0 {
 		v.OnError = errorHandlers[0]
 	}
@@ -51,6 +54,7 @@ func NewView(input io.Writer, output io.Reader, errorHandlers ...func(error)) *V
 	v.measure()
 	go func() {
 		_, err := io.Copy(input, v.Core)
+		v.Core.CloseInput()
 		if err != nil {
 			v.report(err)
 		}
@@ -70,8 +74,12 @@ func NewView(input io.Writer, output io.Reader, errorHandlers ...func(error)) *V
 		for {
 			n, err := output.Read(buf)
 			if n > 0 {
-				_, _ = v.Core.Write(buf[:n])
+				_, writeErr := v.Core.Write(buf[:n])
 				v.dirty.Store(true)
+				if writeErr != nil {
+					v.report(writeErr)
+					return
+				}
 			}
 			if err != nil {
 				if err != io.EOF {
@@ -120,8 +128,11 @@ func (v *View) Close() {
 	})
 }
 func (v *View) measure() {
-	s := fyne.MeasureText("M", v.fontSize, fyne.TextStyle{Monospace: true})
-	v.cellSize = fyne.NewSize(float32(math.Ceil(float64(s.Width))), float32(math.Ceil(float64(s.Height))))
+	sample := canvas.NewText("M", color.White)
+	sample.TextSize = v.fontSize
+	sample.FontSource = theme.DefaultTextMonospaceFont()
+	s := sample.MinSize()
+	v.cellSize = fyne.NewSize(float32(math.Ceil(float64(max(s.Width, v.fontSize*.6)))), float32(math.Ceil(float64(max(s.Height, v.fontSize*1.8)))))
 }
 func (v *View) SetFontSize(size float32) {
 	if size < 8 || size > 40 {
@@ -147,7 +158,13 @@ func (v *View) Resize(size fyne.Size) {
 		}
 	}
 }
-func (v *View) FocusGained()     { v.focused = true; v.Refresh() }
+func (v *View) FocusGained() {
+	v.focused = true
+	if v.OnFocus != nil {
+		v.OnFocus()
+	}
+	v.Refresh()
+}
 func (v *View) FocusLost()       { v.focused = false; v.modifier = 0; v.Refresh() }
 func (v *View) AcceptsTab() bool { return true }
 func (v *View) enqueue(f func()) {
@@ -326,7 +343,7 @@ func (v *View) mouseAt(p fyne.Position) uv.Mouse {
 }
 func (v *View) Send(text string) { v.enqueue(func() { v.Core.Text(text, false) }) }
 func (v *View) CreateRenderer() fyne.WidgetRenderer {
-	return &renderer{v: v, background: canvas.NewRectangle(color.NRGBA{R: 16, G: 22, B: 32, A: 255})}
+	return &renderer{v: v, background: canvas.NewRectangle(theme.Color("terminalBackground"))}
 }
 
 type renderer struct {
@@ -349,6 +366,7 @@ func (r *renderer) Objects() []fyne.CanvasObject {
 func (r *renderer) Destroy() {}
 func (r *renderer) paint() {
 	v := r.v
+	r.background.FillColor = theme.Color("terminalBackground")
 	s := v.Core.Snapshot(v.offset)
 	if v.selectionScreen != nil {
 		s = *v.selectionScreen
@@ -368,6 +386,7 @@ func (r *renderer) paint() {
 	if start > end {
 		start, end = end, start
 	}
+	textOffset := max(float32(0), (v.cellSize.Height-fyne.MeasureText("M", v.fontSize, fyne.TextStyle{Monospace: true}).Height)/2)
 	for y, row := range s.Rows {
 		for x, cell := range row {
 			i := y*v.cols + x
@@ -377,32 +396,45 @@ func (r *renderer) paint() {
 			t, b := r.texts[i], r.backs[i]
 			fg, bg := cell.Style.Fg, cell.Style.Bg
 			if fg == nil {
-				fg = color.NRGBA{R: 219, G: 229, B: 242, A: 255}
+				fg = theme.Color("terminalForeground")
 			}
 			if bg == nil {
-				bg = color.Transparent
+				bg = theme.Color("terminalBackground")
 			}
 			if cell.Style.Attrs&uv.AttrReverse != 0 {
 				fg, bg = bg, fg
 			}
 			if start >= 0 && i >= start && i <= end {
-				bg = theme.SelectionColor()
+				bg = theme.Color("terminalSelection")
 			}
 			if v.focused && x == s.CursorX && y == s.CursorY {
-				bg = color.NRGBA{R: 56, G: 102, B: 151, A: 255}
+				bg = theme.Color("terminalSelection")
 			}
 			b.FillColor = bg
 			b.Move(fyne.NewPos(float32(x)*v.cellSize.Width, float32(y)*v.cellSize.Height))
 			b.Resize(fyne.NewSize(v.cellSize.Width*float32(max(1, cell.Width)), v.cellSize.Height))
 			t.Text = cell.Text
+			t.FontSource = nil
+			if asciiCell(cell.Text) {
+				t.FontSource = theme.DefaultTextMonospaceFont()
+			}
 			t.Color = fg
 			t.TextSize = v.fontSize
 			t.TextStyle = fyne.TextStyle{Monospace: true, Bold: cell.Style.Attrs&uv.AttrBold != 0, Italic: cell.Style.Attrs&uv.AttrItalic != 0}
-			t.Move(b.Position())
+			t.Move(b.Position().Add(fyne.NewPos(0, textOffset)))
 			t.Resize(b.Size())
 			if cell.Width == 0 {
 				t.Text = ""
 			}
 		}
 	}
+}
+
+func asciiCell(s string) bool {
+	for _, r := range s {
+		if r > 127 {
+			return false
+		}
+	}
+	return true
 }

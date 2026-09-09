@@ -24,12 +24,15 @@ type Screen struct {
 type Core struct {
 	mu            sync.Mutex
 	vt            *vt.Emulator
+	input         *inputBuffer
 	cursorVisible bool
 	mouseModes    map[ansi.Mode]bool
 }
 
 func NewCore(cols, rows int) *Core {
 	c := &Core{vt: vt.NewEmulator(cols, rows), cursorVisible: true, mouseModes: map[ansi.Mode]bool{}}
+	c.input = newInputBuffer()
+	c.vt.SetInputPipe(c.input)
 	c.vt.SetScrollbackSize(10000)
 	c.vt.SetCallbacks(vt.Callbacks{CursorVisibility: func(visible bool) { c.cursorVisible = visible }, EnableMode: func(m ansi.Mode) {
 		if m == ansi.ModeMouseX10 || m == ansi.ModeMouseNormal || m == ansi.ModeMouseButtonEvent || m == ansi.ModeMouseAnyEvent {
@@ -38,9 +41,17 @@ func NewCore(cols, rows int) *Core {
 	}, DisableMode: func(m ansi.Mode) { delete(c.mouseModes, m) }})
 	return c
 }
-func (c *Core) Write(b []byte) (int, error) { c.mu.Lock(); defer c.mu.Unlock(); return c.vt.Write(b) }
-func (c *Core) Read(b []byte) (int, error)  { return c.vt.Read(b) }
-func (c *Core) CloseInput() error           { return c.vt.InputPipe().(io.Closer).Close() }
+func (c *Core) Write(b []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n, err := c.vt.Write(b)
+	if err == nil {
+		err = c.input.Err()
+	}
+	return n, err
+}
+func (c *Core) Read(b []byte) (int, error) { return c.vt.Read(b) }
+func (c *Core) CloseInput() error          { return c.vt.InputPipe().(io.Closer).Close() }
 func (c *Core) Resize(cols, rows int) {
 	if cols < 2 || rows < 2 {
 		return

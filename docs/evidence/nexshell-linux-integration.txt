@@ -1,0 +1,20 @@
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/authentication_and_shell
+=== RUN   TestLinuxLab/sftp_conflict_resume
+=== RUN   TestLinuxLab/changed_host_key
+=== RUN   TestLinuxLab/jump_host
+=== RUN   TestLinuxLab/cancel_unknown_not_replayed
+=== RUN   TestLinuxLab/monitor_and_forwarding
+=== RUN   TestLinuxLab/zmodem_lrzsz
+=== RUN   TestLinuxLab/eino_approval_execution_verification
+--- PASS: TestLinuxLab (8.51s)
+    --- PASS: TestLinuxLab/authentication_and_shell (4.64s)
+    --- PASS: TestLinuxLab/sftp_conflict_resume (0.15s)
+    --- PASS: TestLinuxLab/changed_host_key (0.02s)
+    --- PASS: TestLinuxLab/jump_host (0.12s)
+    --- PASS: TestLinuxLab/cancel_unknown_not_replayed (2.16s)
+    --- PASS: TestLinuxLab/monitor_and_forwarding (0.05s)
+    --- PASS: TestLinuxLab/zmodem_lrzsz (0.09s)
+    --- PASS: TestLinuxLab/eino_approval_execution_verification (0.26s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/tests/integration	10.593s

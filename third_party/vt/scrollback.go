@@ -13,6 +13,7 @@ const DefaultScrollbackSize = 10000
 type Scrollback struct {
 	lines    []uv.Line
 	maxLines int
+	head     int
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -48,8 +49,9 @@ func (s *Scrollback) Push(line uv.Line) {
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
-		s.lines = slices.Delete(s.lines, 0, 1)
+		s.lines[s.head] = cloned
+		s.head = (s.head + 1) % len(s.lines)
+		return
 	}
 	s.lines = append(s.lines, cloned)
 }
@@ -90,11 +92,16 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 		return
 	}
 
-	s.maxLines = maxLines
-	if len(s.lines) > maxLines {
-		// Remove oldest lines
-		s.lines = s.lines[len(s.lines)-maxLines:]
+	if maxLines == s.maxLines {
+		return
 	}
+	// Changing capacity is rare. Normalize once, retaining the newest lines.
+	keep := min(len(s.lines), maxLines)
+	lines := make([]uv.Line, keep)
+	for i := range lines {
+		lines[i] = s.Line(len(s.lines) - keep + i)
+	}
+	s.lines, s.head, s.maxLines = lines, 0, maxLines
 }
 
 // Line returns the line at the given index.
@@ -104,7 +111,7 @@ func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.lines) {
 		return nil
 	}
-	return s.lines[index]
+	return s.lines[(s.head+index)%len(s.lines)]
 }
 
 // Lines returns all lines in the scrollback buffer.
@@ -113,7 +120,13 @@ func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
-	return s.lines
+	if s.head == 0 {
+		return s.lines
+	}
+	lines := make([]uv.Line, len(s.lines))
+	n := copy(lines, s.lines[s.head:])
+	copy(lines[n:], s.lines[:s.head])
+	return lines
 }
 
 // Clear removes all lines from the scrollback buffer.
@@ -121,7 +134,9 @@ func (s *Scrollback) Clear() {
 	if s == nil {
 		return
 	}
+	clear(s.lines)
 	s.lines = s.lines[:0]
+	s.head = 0
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.

@@ -30,7 +30,7 @@ func Evaluate(t domain.Task, h domain.Host, r domain.Request, now time.Time) (bo
 		return false, errors.New("主机连接或身份配置已变化，请重新授权")
 	}
 	switch r.Operation {
-	case "observe", "service_status", "logs", "file_read", "file_write", "service_restart", "package_install", "shell":
+	case "terminal_connect", "terminal_read", "terminal_write", "observe", "service_status", "logs", "file_read", "file_write", "service_restart", "package_install", "shell":
 	default:
 		return false, errors.New("未知工具操作")
 	}
@@ -43,7 +43,7 @@ func Evaluate(t domain.Task, h domain.Host, r domain.Request, now time.Time) (bo
 		}
 	}
 	// Arbitrary shell cannot inherit a resource-scoped grant. It always binds to an exact request.
-	if r.Operation == "shell" {
+	if r.Operation == "shell" || r.Operation == "terminal_write" {
 		return false, nil
 	}
 	if !slices.Contains(t.Grant.Operations, r.Operation) {

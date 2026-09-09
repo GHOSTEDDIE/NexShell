@@ -12,7 +12,10 @@ case "$target_os" in
   darwin)
     bundle=dist/NexShell.app
     mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-    cp "bin/$binary_name" "$bundle/Contents/MacOS/nexshell"
+    # Replace the executable atomically so packaging cannot overwrite a running
+    # client's mapped executable or interrupt its SSH sessions.
+    cp "bin/$binary_name" "$bundle/Contents/MacOS/nexshell.next"
+    mv -f "$bundle/Contents/MacOS/nexshell.next" "$bundle/Contents/MacOS/nexshell"
     cp scripts/Info.plist "$bundle/Contents/Info.plist"
     cp -f LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt "$bundle/Contents/Resources/"
     codesign --force --deep --sign - "$bundle"
@@ -23,10 +26,10 @@ case "$target_os" in
     cp -f LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt dist/
     ;;
   linux)
-    archive_dir="dist/NexShell-linux-$target_arch"
+    archive_dir="dist/packages/linux-$target_arch/NexShell"
     mkdir -p "$archive_dir"
     cp "bin/$binary_name" LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt "$archive_dir/"
-    tar -czf "$archive_dir.tar.gz" -C dist "NexShell-linux-$target_arch"
+    tar -czf "dist/NexShell-linux-$target_arch.tar.gz" -C "dist/packages/linux-$target_arch" NexShell
     ;;
   *) printf 'Unsupported packaging target: %s\n' "$target_os" >&2; exit 1 ;;
 esac

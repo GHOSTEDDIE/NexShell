@@ -183,6 +183,14 @@ func (r *contextReader) Read(b []byte) (int, error) {
 	return n, e
 }
 func (m *Manager) Transfer(ctx context.Context, host, local, remote string, upload, resume bool, progress func(int64)) error {
+	return m.transfer(ctx, host, local, remote, upload, resume, false, progress)
+}
+
+// UploadNew never overwrites a file created after the upload was queued.
+func (m *Manager) UploadNew(ctx context.Context, host, local, remote string, progress func(int64)) error {
+	return m.transfer(ctx, host, local, remote, true, false, true, progress)
+}
+func (m *Manager) transfer(ctx context.Context, host, local, remote string, upload, resume, exclusive bool, progress func(int64)) error {
 	c, err := m.SFTP(ctx, host)
 	if err != nil {
 		return err
@@ -209,6 +217,9 @@ func (m *Manager) Transfer(ctx context.Context, host, local, remote string, uplo
 		}
 		total = i.Size()
 		flags := os.O_CREATE | os.O_WRONLY
+		if exclusive {
+			flags |= os.O_EXCL
+		}
 		if !resume {
 			flags |= os.O_TRUNC
 		}
@@ -238,6 +249,9 @@ func (m *Manager) Transfer(ctx context.Context, host, local, remote string, uplo
 		}
 		total = i.Size()
 		flags := os.O_CREATE | os.O_WRONLY
+		if exclusive {
+			flags |= os.O_EXCL
+		}
 		if !resume {
 			flags |= os.O_TRUNC
 		}

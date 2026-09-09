@@ -1,0 +1,26 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+--- FAIL: TestAssistantFirstSendWithDefaultProfile (0.06s)
+panic: runtime error: slice bounds out of range [:8] with length 7 [recovered, repanicked]
+
+goroutine 24 [running]:
+testing.tRunner.func1.2({0x104dc4420, 0x14006ad6258})
+	/Users/Zhuanz/.g/go/src/testing/testing.go:1872 +0x190
+testing.tRunner.func1()
+	/Users/Zhuanz/.g/go/src/testing/testing.go:1875 +0x31c
+panic({0x104dc4420?, 0x14006ad6258?})
+	/Users/Zhuanz/.g/go/src/runtime/panic.go:783 +0x120
+github.com/GHOSTEDDIE/nexshell/internal/ui.(*App).newConversationDialog(0x14000103dc0, {0x1019eeb45, 0x6}, {0x1400007ca90, 0x1, 0x1})
+	/Users/Zhuanz/GolandProjects/MyAITerminal/internal/ui/companion.go:90 +0xd3c
+github.com/GHOSTEDDIE/nexshell/internal/ui.(*App).agentPanel.func2()
+	/Users/Zhuanz/GolandProjects/MyAITerminal/internal/ui/tasks.go:42 +0xc4
+github.com/GHOSTEDDIE/nexshell/internal/ui.(*chatInput).TypedKey(0x14004ad0a88, 0x1400028feb0)
+	/Users/Zhuanz/GolandProjects/MyAITerminal/internal/ui/conversation_view.go:140 +0x100
+github.com/GHOSTEDDIE/nexshell/internal/ui.TestAssistantFirstSendWithDefaultProfile(0x14000103880)
+	/Users/Zhuanz/GolandProjects/MyAITerminal/internal/ui/assistant_send_test.go:44 +0x374
+testing.tRunner(0x14000103880, 0x104ea04e8)
+	/Users/Zhuanz/.g/go/src/testing/testing.go:1934 +0xc8
+created by testing.(*T).Run in goroutine 1
+	/Users/Zhuanz/.g/go/src/testing/testing.go:1997 +0x364
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.439s
+FAIL

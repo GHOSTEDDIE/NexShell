@@ -25,6 +25,7 @@ type Snapshot struct {
 	Disks                 Metric    `json:"disks"`
 	Processes             Metric    `json:"processes"`
 	Ports                 Metric    `json:"ports"`
+	Uptime                Metric    `json:"uptime"`
 	System                Metric    `json:"system"`
 	TotalTicks, IdleTicks uint64
 	Net                   map[string][2]uint64
@@ -41,6 +42,7 @@ section disks df -Pk
 section processes ps -eo pid,user,pcpu,pmem,comm --sort=-pcpu
 section ports ss -tunap
 section system uname -a
+section uptime cat /proc/uptime
 `
 
 func (m *Manager) Monitor(ctx context.Context, host string, previous *Snapshot) (Snapshot, error) {
@@ -96,6 +98,7 @@ func ParseSnapshot(text string, prev *Snapshot) (Snapshot, error) {
 	s.Processes = get("processes")
 	s.Ports = get("ports")
 	s.System = get("system")
+	s.Uptime = get("uptime")
 	if s.CPU.State == "ok" {
 		fields := strings.Fields(strings.Split(fmt.Sprint(s.CPU.Value), "\n")[0])
 		if len(fields) < 5 || fields[0] != "cpu" {

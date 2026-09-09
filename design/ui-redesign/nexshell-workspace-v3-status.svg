@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1080" viewBox="0 0 1680 1080">
+<rect x="0" y="0" width="1680" height="1080" rx="0" fill="#ECF0F5" stroke="none"/>
+<text xml:space="preserve" x="44" y="46" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="23" font-weight="650" fill="#303B4D">NexShell</text>
+<text xml:space="preserve" x="166" y="45" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="400" fill="#768296">界面改版 · 方案 03</text>
+<text xml:space="preserve" x="1320" y="45" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="400" fill="#768296">浅色工作台 / 深色终端</text>
+<rect x="32" y="76" width="1616" height="940" rx="12" fill="#FFFFFF" stroke="#D8DFE9"/>
+<rect x="33" y="77" width="1614" height="49" rx="12" fill="#FAFBFD" stroke="none"/>
+<rect x="33" y="108" width="1614" height="18" rx="0" fill="#FAFBFD" stroke="none"/>
+<circle cx="55" cy="101" r="6" fill="#F27770"/>
+<circle cx="75" cy="101" r="6" fill="#EDC361"/>
+<circle cx="95" cy="101" r="6" fill="#6AC48E"/>
+<text xml:space="preserve" x="123" y="107" font-family="Menlo,monospace" font-size="20" font-weight="650" fill="#3974DC">›_</text>
+<text xml:space="preserve" x="157" y="106" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="600" fill="#303B4D">NexShell</text>
+<text xml:space="preserve" x="749" y="106" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8A94A4">服务器工作台</text>
+<path transform="translate(1562 90)" d="M11 6a5 5 0 1 0 0 10a5 5 0 1 0 0-10 M11 0v3 M11 19v3 M0 11h3 M19 11h3" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="translate(1600 90)" d="M11 5a6 6 0 1 0 0 12a6 6 0 1 0 0-12 M11 1v4 M11 17v4 M1 11h4 M17 11h4" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M33 126 L1647 126" stroke="#E6EAF0" fill="none"/>
+<rect x="33" y="127" width="257" height="857" rx="0" fill="#F5F7FA" stroke="none"/>
+<path d="M290 127 L290 984" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="153" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="600" fill="#3974DC">服务器状态</text>
+<text xml:space="preserve" x="144" y="153" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8792A4">连接列表</text>
+<path d="M33 167 L290 167" stroke="#E6EAF0" fill="none"/>
+<rect x="54" y="165" width="60" height="2" rx="0" fill="#3974DC" stroke="none"/>
+<path transform="translate(54 194)" d="M2 2h16v7H2z M2 13h16v7H2z M5 5h2 M5 16h2" fill="none" stroke="#668ABD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="89" y="205" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="600" fill="#354D6D">生产应用 01</text>
+<text xml:space="preserve" x="89" y="226" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8A98AA">root@10.0.1.21</text>
+<circle cx="59" cy="252" r="3" fill="#55B38C"/>
+<text xml:space="preserve" x="69" y="256" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#67927C">已连接</text>
+<text xml:space="preserve" x="152" y="256" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="10" font-weight="400" fill="#98A3B3">更新于 14:32:08</text>
+<path d="M53 275 L268 275" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="305" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#7A899E">CPU 使用率</text>
+<text xml:space="preserve" x="213" y="305" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="600" fill="#415571">8.2%</text>
+<rect x="54" y="318" width="214" height="5" rx="2" fill="#E5EBF4" stroke="none"/>
+<rect x="54" y="318" width="17.548000000000002" height="5" rx="2" fill="#7299DC" stroke="none"/>
+<text xml:space="preserve" x="54" y="343" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#93A0B2">负载  0.12 / 0.18 / 0.15</text>
+<text xml:space="preserve" x="54" y="386" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#7A899E">内存使用率</text>
+<text xml:space="preserve" x="213" y="386" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="15" font-weight="600" fill="#415571">42.5%</text>
+<rect x="54" y="399" width="214" height="5" rx="2" fill="#E5EBF4" stroke="none"/>
+<rect x="54" y="399" width="90.95" height="5" rx="2" fill="#7299DC" stroke="none"/>
+<text xml:space="preserve" x="54" y="424" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#93A0B2">已用 6.8 / 共 16.0 GiB</text>
+<path d="M53 443 L268 443" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="472" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#536781">磁盘</text>
+<text xml:space="preserve" x="54" y="504" font-family="Menlo,monospace" font-size="12" font-weight="400" fill="#74859E">/data</text>
+<text xml:space="preserve" x="233" y="504" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="600" fill="#536781">64%</text>
+<rect x="54" y="516" width="214" height="5" rx="2" fill="#E5EBF4" stroke="none"/>
+<rect x="54" y="516" width="137" height="5" rx="2" fill="#7299DC" stroke="none"/>
+<text xml:space="preserve" x="54" y="541" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#93A0B2">128 / 200 GiB</text>
+<text xml:space="preserve" x="54" y="573" font-family="Menlo,monospace" font-size="12" font-weight="400" fill="#74859E">/</text>
+<text xml:space="preserve" x="233" y="573" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="600" fill="#536781">28%</text>
+<rect x="54" y="585" width="214" height="5" rx="2" fill="#E5EBF4" stroke="none"/>
+<rect x="54" y="585" width="60" height="5" rx="2" fill="#7299DC" stroke="none"/>
+<text xml:space="preserve" x="54" y="610" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#93A0B2">11.2 / 40 GiB</text>
+<path d="M53 631 L268 631" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="660" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#536781">网络</text>
+<text xml:space="preserve" x="235" y="660" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#93A0B2">eth0</text>
+<text xml:space="preserve" x="54" y="691" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8898AC">↓ 接收</text>
+<text xml:space="preserve" x="170" y="691" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#536781">128.4 KB/s</text>
+<text xml:space="preserve" x="54" y="721" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8898AC">↑ 发送</text>
+<text xml:space="preserve" x="178" y="721" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#536781">32.1 KB/s</text>
+<path d="M53 745 L268 745" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="776" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#536781">系统信息</text>
+<text xml:space="preserve" x="54" y="808" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8898AC">系统</text>
+<text xml:space="preserve" x="154" y="808" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#536781">Ubuntu 24.04</text>
+<text xml:space="preserve" x="54" y="837" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8898AC">运行时间</text>
+<text xml:space="preserve" x="193" y="837" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#536781">12 天 3 时</text>
+<path d="M53 862 L268 862" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="54" y="893" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#74859E">进程</text>
+<text xml:space="preserve" x="250" y="893" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="18" font-weight="400" fill="#96A3B6">›</text>
+<path d="M53 909 L268 909" stroke="#EAF0F6" fill="none"/>
+<text xml:space="preserve" x="54" y="940" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#74859E">端口连接</text>
+<text xml:space="preserve" x="250" y="940" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="18" font-weight="400" fill="#96A3B6">›</text>
+<rect x="291" y="127" width="949" height="46" rx="0" fill="#F6F8FB" stroke="none"/>
+<rect x="303" y="134" width="200" height="39" rx="6" fill="#FFFFFF" stroke="none"/>
+<circle cx="321" cy="154" r="3.5" fill="#4BB087"/>
+<text xml:space="preserve" x="335" y="159" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#303B4D">生产应用 01</text>
+<text xml:space="preserve" x="480" y="159" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="17" font-weight="400" fill="#8B95A5">×</text>
+<text xml:space="preserve" x="526" y="159" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8992A2">测试服务器</text>
+<text xml:space="preserve" x="663" y="159" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="17" font-weight="400" fill="#A2AAB7">×</text>
+<path transform="translate(702 144)" d="M11 3v16 M3 11h16" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M291 173 L1240 173" stroke="#E6EAF0" fill="none"/>
+<text xml:space="preserve" x="312" y="204" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="500" fill="#6F7D91">root @ 10.0.1.21</text>
+<rect x="474" y="185" width="58" height="24" rx="4" fill="#EFF8F3" stroke="none"/>
+<text xml:space="preserve" x="485" y="202" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#4E9A77">已连接</text>
+<path transform="translate(1138 187)" d="M2 3h18v17H2z M11 3v17" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1195" y="204" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="21" font-weight="400" fill="#7D899C">···</text>
+<rect x="291" y="220" width="949" height="470" rx="0" fill="#171E29" stroke="none"/>
+<text xml:space="preserve" x="315" y="254" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#83C5AE">root@app-01:~# uptime</text>
+<text xml:space="preserve" x="315" y="279" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6">14:32:08 up 12 days, 3:41, 2 users, load average: 0.12, 0.18, 0.15</text>
+<text xml:space="preserve" x="315" y="304" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6"></text>
+<text xml:space="preserve" x="315" y="329" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#83C5AE">root@app-01:~# docker ps</text>
+<text xml:space="preserve" x="315" y="354" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#8593A8">NAMES          STATUS          PORTS</text>
+<text xml:space="preserve" x="315" y="379" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6">nginx          Up 12 days      0.0.0.0:80-&gt;80/tcp</text>
+<text xml:space="preserve" x="315" y="404" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6">app-server     Up 12 days      0.0.0.0:8080-&gt;8080/tcp</text>
+<text xml:space="preserve" x="315" y="429" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6">redis          Up 12 days      6379/tcp</text>
+<text xml:space="preserve" x="315" y="454" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6"></text>
+<text xml:space="preserve" x="315" y="479" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#83C5AE">root@app-01:~# df -h /data</text>
+<text xml:space="preserve" x="315" y="504" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#8593A8">Filesystem     Size   Used   Avail   Use%   Mounted on</text>
+<text xml:space="preserve" x="315" y="529" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6">/dev/vdb1      200G   128G    72G    64%   /data</text>
+<text xml:space="preserve" x="315" y="554" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#D4DBE6"></text>
+<text xml:space="preserve" x="315" y="579" font-family="Menlo,monospace" font-size="14" font-weight="400" fill="#83C5AE">root@app-01:~#</text>
+<rect x="438" y="567" width="8" height="18" rx="0" fill="#8095B4" stroke="none"/>
+<rect x="1231" y="233" width="3" height="134" rx="2" fill="#3B4759" stroke="none"/>
+<text xml:space="preserve" x="313" y="718" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#3974DC">文件</text>
+<text xml:space="preserve" x="381" y="718" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8792A4">传输</text>
+<text xml:space="preserve" x="450" y="718" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8792A4">网络诊断</text>
+<rect x="311" y="731" width="29" height="2" rx="0" fill="#3974DC" stroke="none"/>
+<path d="M291 733 L1240 733" stroke="#E6EAF0" fill="none"/>
+<path transform="translate(1198 703)" d="M6 8l5 5l5-5" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="translate(311 748)" d="M1 5h7l2 3h11v12H1z" fill="none" stroke="#9CAABD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="346" y="765" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#63738A">/   var   /   log</text>
+<path transform="translate(1117 748)" d="M19 7a8 8 0 1 0 0 9 M19 1v6h-6" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="translate(1160 748)" d="M3 15v6h17v-6 M11 16V2 M5 8l6-6l6 6" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="translate(1203 748)" d="M1 5h7l2 3h11v12H1z" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="292" y="782" width="947" height="31" rx="0" fill="#F8F9FC" stroke="none"/>
+<text xml:space="preserve" x="320" y="803" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#9AA4B4">名称</text>
+<text xml:space="preserve" x="890" y="803" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#9AA4B4">大小</text>
+<text xml:space="preserve" x="1030" y="803" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#9AA4B4">修改时间</text>
+<path transform="translate(314 822)" d="M1 5h7l2 3h11v12H1z" fill="none" stroke="#809CC9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="347" y="838" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#56657B">nginx</text>
+<text xml:space="preserve" x="890" y="838" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">—</text>
+<text xml:space="preserve" x="1030" y="838" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">今天 14:20</text>
+<path d="M312 851 L1219 851" stroke="#F0F2F6" fill="none"/>
+<path transform="translate(314 861)" d="M1 5h7l2 3h11v12H1z" fill="none" stroke="#809CC9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="347" y="877" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#56657B">journal</text>
+<text xml:space="preserve" x="890" y="877" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">—</text>
+<text xml:space="preserve" x="1030" y="877" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">今天 09:16</text>
+<path d="M312 890 L1219 890" stroke="#F0F2F6" fill="none"/>
+<path transform="translate(314 900)" d="M4 1h9l5 5v15H4z M13 1v6h5" fill="none" stroke="#9EACBE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="347" y="916" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#56657B">syslog</text>
+<text xml:space="preserve" x="890" y="916" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">2.4 MB</text>
+<text xml:space="preserve" x="1030" y="916" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">今天 14:32</text>
+<path d="M312 929 L1219 929" stroke="#F0F2F6" fill="none"/>
+<path transform="translate(314 939)" d="M4 1h9l5 5v15H4z M13 1v6h5" fill="none" stroke="#9EACBE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="347" y="955" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#56657B">auth.log</text>
+<text xml:space="preserve" x="890" y="955" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">864 KB</text>
+<text xml:space="preserve" x="1030" y="955" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A7">今天 14:28</text>
+<path d="M312 968 L1219 968" stroke="#F0F2F6" fill="none"/>
+<rect x="1241" y="127" width="406" height="857" rx="0" fill="#FAFBFD" stroke="none"/>
+<path d="M1240 127 L1240 984" stroke="#E6EAF0" fill="none"/>
+<path transform="translate(1264 144)" d="M11 1l3 7l7 3l-7 3l-3 7l-3-7l-7-3l7-3z" fill="none" stroke="#3974DC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1298" y="162" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="16" font-weight="600" fill="#303B4D">助手</text>
+<path transform="translate(1565 144)" d="M11 3v16 M3 11h16" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1610" y="161" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="20" font-weight="400" fill="#9AA4B4">×</text>
+<path d="M1241 173 L1647 173" stroke="#E6EAF0" fill="none"/>
+<path transform="translate(1264 187)" d="M2 2h16v7H2z M2 13h16v7H2z M5 5h2 M5 16h2" fill="none" stroke="#96A5BB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1297" y="204" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8895A8">当前连接 · 生产应用 01</text>
+<rect x="1294" y="245" width="328" height="52" rx="8" fill="#EAF0FC" stroke="none"/>
+<text xml:space="preserve" x="1310" y="276" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="400" fill="#45618B">帮我检查这台服务器的运行状态</text>
+<rect x="1264" y="329" width="27" height="27" rx="7" fill="#EAF0FC" stroke="none"/>
+<path transform="translate(1267 332)" d="M11 1l3 7l7 3l-7 3l-3 7l-3-7l-7-3l7-3z" fill="none" stroke="#5B82C7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1303" y="348" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#303B4D">NexShell</text>
+<text xml:space="preserve" x="1265" y="386" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="400" fill="#526176">已完成检查，服务器运行正常。</text>
+<rect x="1264" y="408" width="359" height="199" rx="8" fill="#FFFFFF" stroke="#E4EAF2"/>
+<circle cx="1286" cy="433" r="7" fill="#E5F4ED"/>
+<text xml:space="preserve" x="1281" y="437" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#4B9D79">✓</text>
+<text xml:space="preserve" x="1302" y="438" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="500" fill="#5A7167">检查完成</text>
+<path d="M1281 452 L1606 452" stroke="#EEF1F6" fill="none"/>
+<text xml:space="preserve" x="1282" y="478" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8A96A7">CPU 负载</text>
+<text xml:space="preserve" x="1557" y="478" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="600" fill="#455773">0.12</text>
+<text xml:space="preserve" x="1282" y="515" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8A96A7">运行中容器</text>
+<text xml:space="preserve" x="1561" y="515" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="600" fill="#455773">3 个</text>
+<text xml:space="preserve" x="1282" y="552" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#8A96A7">数据盘使用率</text>
+<text xml:space="preserve" x="1557" y="552" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="600" fill="#455773">64%</text>
+<rect x="1282" y="569" width="322" height="4" rx="2" fill="#EEF2F8" stroke="none"/>
+<rect x="1282" y="569" width="206" height="4" rx="2" fill="#7B9EDD" stroke="none"/>
+<text xml:space="preserve" x="1265" y="638" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="14" font-weight="400" fill="#526176">暂未发现异常，磁盘空间充足。</text>
+<path transform="translate(1263 668)" d="M6 8l5 5l5-5" fill="none" stroke="#8290A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1293" y="685" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8B98AA">执行记录 · 3 条命令</text>
+<text xml:space="preserve" x="1293" y="713" font-family="Menlo,monospace" font-size="12" font-weight="400" fill="#8291A6">uptime</text>
+<text xml:space="preserve" x="1591" y="713" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#74AE94">✓</text>
+<text xml:space="preserve" x="1293" y="738" font-family="Menlo,monospace" font-size="12" font-weight="400" fill="#8291A6">docker ps</text>
+<text xml:space="preserve" x="1591" y="738" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#74AE94">✓</text>
+<text xml:space="preserve" x="1293" y="763" font-family="Menlo,monospace" font-size="12" font-weight="400" fill="#8291A6">df -h /data</text>
+<text xml:space="preserve" x="1591" y="763" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#74AE94">✓</text>
+<rect x="1259" y="835" width="371" height="109" rx="8" fill="#FFFFFF" stroke="#DCE3EE"/>
+<text xml:space="preserve" x="1276" y="863" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="400" fill="#A0ABBA">继续提问，或描述你想完成的操作…</text>
+<text xml:space="preserve" x="1277" y="924" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="21" font-weight="400" fill="#8A98AE">＋</text>
+<text xml:space="preserve" x="1314" y="922" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#8794A8">默认模型</text>
+<path transform="translate(1375 905)" d="M6 8l5 5l5-5" fill="none" stroke="#8794A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1582" y="902" width="31" height="30" rx="6" fill="#3974DC" stroke="none"/>
+<path transform="translate(1587 906)" d="M3 12L11 4l8 8 M11 4v16" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text xml:space="preserve" x="1316" y="968" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="10" font-weight="400" fill="#A3ACB9">Enter 发送 · Shift + Enter 换行</text>
+<rect x="33" y="984" width="1614" height="31" rx="10" fill="#FFFFFF" stroke="none"/>
+<rect x="33" y="984" width="1614" height="14" rx="0" fill="#FFFFFF" stroke="none"/>
+<path d="M33 984 L1647 984" stroke="#E6EAF0" fill="none"/>
+<circle cx="55" cy="1000" r="3" fill="#55B38C"/>
+<text xml:space="preserve" x="67" y="1004" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#8794A6">已连接</text>
+<text xml:space="preserve" x="132" y="1004" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#99A3B2">延迟 24 ms</text>
+<text xml:space="preserve" x="1561" y="1004" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="11" font-weight="400" fill="#99A3B2">2 个会话</text>
+<text xml:space="preserve" x="44" y="1055" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="13" font-weight="600" fill="#61718A">03  服务器状态</text>
+<text xml:space="preserve" x="1220" y="1055" font-family="PingFang SC,Hiragino Sans GB,Arial,sans-serif" font-size="12" font-weight="400" fill="#909DAF">视觉设计稿 · 示例数据 · 待确认</text>
+</svg>

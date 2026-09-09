@@ -15,7 +15,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/agent"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
@@ -24,97 +23,102 @@ import (
 )
 
 type App struct {
-	UI         fyne.App
-	Window     fyne.Window
-	Store      *store.Store
-	Manager    *remote.Manager
-	Agent      *agent.Service
-	Executor   *remote.Executor
-	ctx        context.Context
-	cancel     context.CancelFunc
-	hosts      []domain.Host
-	filtered   []domain.Host
-	list       *widget.List
-	selected   string
-	tabs       *container.DocTabs
-	status     *widget.Label
-	search     *widget.Entry
-	workspaces []*workspace
-	taskID     string
-	taskText   *readOnly
-	taskStatus *widget.Label
-	taskList   *widget.Select
-	tunnels    []*remote.Tunnel
+	groupCounts                    map[string]int
+	preferredModel                 string
+	stopAction, approvalAction     *actionButton
+	settingsThemeStatus            *textView
+	sideTabs                       *tabView
+	desktopBody                    *fyne.Container
+	assistantVisible               bool
+	assistantContext, sessionCount *textView
+	modelSelect                    *widget.Select
+	conversationView               *conversationView
+	settingsPopup                  *widget.PopUp
+	homeTab                        *container.TabItem
+	serverStatus                   *fyne.Container
+	connecting                     map[string]bool
+	homeList                       *widget.List
+	homeCount                      *widget.Label
+	terminalsDesktop               *remote.DesktopTerminals
+	closing                        bool
+	UI                             fyne.App
+	Window                         fyne.Window
+	Store                          *store.Store
+	Manager                        *remote.Manager
+	Agent                          *agent.Service
+	Executor                       *remote.Executor
+	ctx                            context.Context
+	cancel                         context.CancelFunc
+	hosts                          []domain.Host
+	filtered                       []domain.Host
+	selected                       string
+	tabs                           *tabView
+	status                         *widget.Label
+	search                         *widget.Entry
+	workspaces                     []*workspace
+	taskID                         string
+	taskRequests                   chan taskSelection
+	taskRevision                   uint64
+	taskText                       *readOnly
+	taskStatus                     *widget.Label
+	taskList                       *widget.Select
+	tunnels                        []*remote.Tunnel
 }
 
 func New(app fyne.App, s *store.Store, m *remote.Manager, e *remote.Executor, a *agent.Service) *App {
-	app.Settings().SetTheme(NewTheme(true))
+	restoreTheme(app)
 	ctx, cancel := context.WithCancel(context.Background())
-	u := &App{UI: app, Store: s, Manager: m, Agent: a, Executor: e, ctx: ctx, cancel: cancel}
+	u := &App{taskRequests: make(chan taskSelection, 1), UI: app, Store: s, Manager: m, Agent: a, Executor: e, ctx: ctx, cancel: cancel}
+	u.terminalsDesktop = &remote.DesktopTerminals{Open: u.openAgentTerminal}
+	e.Desktop = u.terminalsDesktop
+	a.Desktop = u.terminalsDesktop
 	u.Window = app.NewWindow("NexShell")
-	u.Window.Resize(fyne.NewSize(1380, 900))
+	u.Window.SetPadded(false)
+	u.Window.Resize(fyne.NewSize(1440, 940))
 	u.status = widget.NewLabel("就绪")
-	u.tabs = container.NewDocTabs()
-	u.tabs.SetTabLocation(container.TabLocationTop)
-	u.tabs.Append(container.NewTabItem("工作空间", container.NewCenter(container.NewVBox(widget.NewLabelWithStyle("连接你的服务器", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}), widget.NewLabel("终端 · 文件 · 监控 · 运维助手"), widget.NewButtonWithIcon("添加服务器", theme.ContentAddIcon(), func() { u.editHost(nil) })))))
-	u.tabs.OnClosed = func(item *container.TabItem) {
-		for _, ws := range u.workspaces {
-			if ws.tab == item {
-				ws.close()
-			}
+	u.connecting = map[string]bool{}
+	u.serverStatus = container.NewStack(emptyServerStatus())
+	u.tabs = newTabView(true)
+	u.homeTab = container.NewTabItemWithIcon("工作台", designIcon("home"), u.welcome())
+	u.tabs.Pinned = u.homeTab
+	u.tabs.Append(u.homeTab)
+	u.tabs.OnSelected = u.selectWorkspace
+	u.tabs.OnClosed = u.closeWorkspace
+	u.tabs.CloseIntercept = u.closeWorkspace
+	u.Window.SetContent(u.desktop(u.serverStatus))
+	u.UI.Settings().AddListener(func(fyne.Settings) {
+		if !u.closing {
+			u.refreshAppearanceStatus()
 		}
-	}
-	u.search = widget.NewEntry()
-	u.search.SetPlaceHolder("搜索名称、地址或标签")
-	u.search.OnChanged = func(string) { u.filterHosts() }
-	u.list = widget.NewList(func() int { return len(u.filtered) }, func() fyne.CanvasObject {
-		return container.NewVBox(widget.NewLabelWithStyle("服务器", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}), widget.NewLabel("地址"))
-	}, func(i widget.ListItemID, obj fyne.CanvasObject) {
-		h := u.filtered[i]
-		box := obj.(*fyne.Container)
-		box.Objects[0].(*widget.Label).SetText(h.Name)
-		box.Objects[1].(*widget.Label).SetText(h.User + "@" + h.Address + " · " + h.Group)
 	})
-	u.list.OnSelected = func(i widget.ListItemID) {
-		if i >= 0 && i < len(u.filtered) {
-			u.selected = u.filtered[i].ID
-		}
-	}
-	side := container.NewBorder(container.NewVBox(widget.NewLabelWithStyle("服务器", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}), u.search), container.NewGridWithColumns(2, widget.NewButton("连接", func() { u.connectSelected() }), widget.NewButton("编辑", func() {
-		h, e := s.Host(u.selected)
-		if e != nil {
-			u.error(e)
-			return
-		}
-		u.editHost(&h)
-	})), nil, nil, u.list)
-	center := container.NewHSplit(side, u.tabs)
-	center.Offset = .19
-	right := u.agentPanel()
-	split := container.NewHSplit(center, right)
-	split.Offset = .76
-	toolbar := container.NewHBox(widget.NewLabelWithStyle("NexShell", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}), widget.NewSeparator(), widget.NewButtonWithIcon("添加主机", theme.ContentAddIcon(), func() { u.editHost(nil) }), widget.NewButton("导入", u.importHosts), widget.NewButton("导出", u.exportHosts), widget.NewButton("模型设置", u.modelDialog), widget.NewButton("批量执行", u.batchDialog), widget.NewButton("端口转发", u.tunnelDialog), widget.NewButton("快捷命令", u.snippetsDialog), widget.NewButton("删除主机", u.deleteHost), widget.NewButton("主题", func() {
-		if app.Settings().ThemeVariant() == theme.VariantDark {
-			app.Settings().SetTheme(NewTheme(false))
-		} else {
-			app.Settings().SetTheme(NewTheme(true))
-		}
-	}))
-	u.Window.SetContent(container.NewBorder(toolbar, u.status, nil, nil, split))
+	u.Window.SetOnDropped(u.filesDropped)
 	u.refreshHosts()
 	u.refreshTasks()
 	m.Prompt = u.prompt
 	u.Window.SetCloseIntercept(func() {
-		u.Window.SetCloseIntercept(nil)
+		if u.closing {
+			return
+		}
+		u.closing = true
 		u.status.SetText("正在保存任务与关闭连接…")
 		u.cancel()
-		for _, ws := range u.workspaces {
-			ws.close()
-		}
-		for _, t := range u.tunnels {
-			t.Close()
-		}
-		go func() { u.Agent.Close(); u.Manager.Close(); _ = u.Store.Close(); fyne.Do(func() { u.Window.Close() }) }()
+		u.Agent.Stop()
+		workspaces := u.workspaces
+		u.workspaces = nil
+		tunnels := append([]*remote.Tunnel(nil), u.tunnels...)
+		u.Window.SetContent(container.NewCenter(widget.NewLabel("正在保存任务与关闭连接…")))
+		go func() {
+			u.Manager.Close()
+			for _, ws := range workspaces {
+				ws.close()
+			}
+			for _, t := range tunnels {
+				t.Close()
+			}
+			u.Agent.Close()
+			_ = u.Store.Close()
+			fyne.Do(func() { u.Window.SetCloseIntercept(nil); u.Window.Close() })
+		}()
 	})
 	go u.watchTasks()
 	return u
@@ -130,6 +134,9 @@ func (u *App) work(label string, fn func() error) {
 	go func() {
 		err := fn()
 		fyne.Do(func() {
+			if u.closing {
+				return
+			}
 			if err != nil {
 				u.status.SetText("操作失败")
 				u.error(err)
@@ -152,6 +159,7 @@ func (u *App) refreshHosts() {
 		return hosts[i].Name < hosts[j].Name
 	})
 	u.hosts = hosts
+	u.homeCount.SetText(fmt.Sprintf("已保存连接 · %d", len(hosts)))
 	u.filterHosts()
 }
 func (u *App) filterHosts() {
@@ -162,7 +170,18 @@ func (u *App) filterHosts() {
 			u.filtered = append(u.filtered, h)
 		}
 	}
-	u.list.Refresh()
+	u.groupCounts = make(map[string]int)
+	for _, h := range u.filtered {
+		u.groupCounts[h.Group]++
+	}
+	for i, h := range u.filtered {
+		height := float32(66)
+		if i == 0 || u.filtered[i-1].Group != h.Group {
+			height = 90
+		}
+		u.homeList.SetItemHeight(i, height)
+	}
+	u.homeList.Refresh()
 }
 func (u *App) connectSelected() {
 	if u.selected == "" {
@@ -177,10 +196,27 @@ func (u *App) connectSelected() {
 	u.connect(h)
 }
 func (u *App) connect(h domain.Host) {
+	for _, ws := range u.workspaces {
+		if ws.host.ID == h.ID && ws.ctx.Err() == nil {
+			u.tabs.Select(ws.tab)
+			return
+		}
+	}
+	if u.closing || u.connecting[h.ID] {
+		return
+	}
+	u.connecting[h.ID] = true
 	u.status.SetText("正在连接 " + h.Name)
 	go func() {
 		s, e := u.Manager.Terminal(u.ctx, h.ID, 24, 80)
 		fyne.Do(func() {
+			delete(u.connecting, h.ID)
+			if u.closing {
+				if s != nil {
+					s.Close()
+				}
+				return
+			}
 			if e != nil {
 				var key *remote.HostKeyError
 				if errors.As(e, &key) && !key.Changed {
@@ -200,9 +236,7 @@ func (u *App) connect(h domain.Host) {
 				return
 			}
 			ws := u.newWorkspace(h, s)
-			u.workspaces = append(u.workspaces, ws)
-			u.tabs.Append(ws.tab)
-			u.tabs.Select(ws.tab)
+			u.showWorkspace(ws)
 			u.status.SetText("已连接 " + h.Name)
 		})
 	}()
@@ -226,7 +260,7 @@ func (u *App) editHost(existing *domain.Host) {
 		if v.ID == h.ID {
 			continue
 		}
-		label := v.Name + " · " + v.ID[:8]
+		label := v.Name + " · " + shortID(v.ID)
 		jumpNames = append(jumpNames, label)
 		jumps[label] = v.ID
 		if v.ID == h.JumpID {
@@ -333,58 +367,8 @@ func (u *App) exportHosts() {
 		u.error(enc.Encode(u.hosts))
 	}, u.Window)
 }
-func (u *App) modelDialog() {
-	profiles, e := store.All[domain.ModelProfile](u.Store, "models")
-	if e != nil {
-		u.error(e)
-		return
-	}
-	p := domain.ModelProfile{ID: "default", Name: "默认模型", Provider: "openai", BaseURL: "https://api.openai.com/v1", ContextTokens: 32000}
-	if len(profiles) > 0 {
-		p = profiles[0]
-	}
-	provider := widget.NewSelect([]string{"openai", "ollama"}, nil)
-	provider.SetSelected(p.Provider)
-	base := widget.NewEntry()
-	base.SetText(p.BaseURL)
-	modelName := widget.NewEntry()
-	modelName.SetText(p.Model)
-	key := widget.NewPasswordEntry()
-	key.SetPlaceHolder("留空保留已保存密钥")
-	tokens := widget.NewEntry()
-	tokens.SetText(strconv.Itoa(p.ContextTokens))
-	provider.OnChanged = func(v string) {
-		if v == "ollama" {
-			base.SetText("http://localhost:11434")
-		} else {
-			base.SetText("https://api.openai.com/v1")
-		}
-	}
-	dialog.ShowForm("模型设置", "保存", "取消", []*widget.FormItem{widget.NewFormItem("接口类型", provider), widget.NewFormItem("服务地址", base), widget.NewFormItem("模型名称", modelName), widget.NewFormItem("密钥", key), widget.NewFormItem("上下文容量", tokens)}, func(ok bool) {
-		if !ok {
-			return
-		}
-		p.Provider = provider.Selected
-		p.BaseURL = base.Text
-		p.Model = modelName.Text
-		n, e := strconv.Atoi(tokens.Text)
-		if e != nil || n < 4096 {
-			u.error(errors.New("上下文容量至少为 4096"))
-			return
-		}
-		p.ContextTokens = n
-		secret := key.Text
-		key.SetText("")
-		u.work("保存模型设置", func() error {
-			if secret != "" {
-				if e := (store.Credentials{}).Set("model:"+p.ID, secret); e != nil {
-					return e
-				}
-			}
-			return u.Store.Put("models", p.ID, p)
-		})
-	}, u.Window)
-}
+func (u *App) modelDialog() { u.settingsDialog("models") }
+
 func (u *App) prompt(ctx context.Context, user, instruction string, questions []string, echo []bool) ([]string, error) {
 	type answer struct {
 		v []string
@@ -425,7 +409,7 @@ func (u *App) hostChoices() ([]string, map[string]string) {
 	var names []string
 	ids := map[string]string{}
 	for _, h := range u.hosts {
-		n := h.Name + " · " + h.User + "@" + h.Address + " · " + h.ID[:8]
+		n := h.Name + " · " + h.User + "@" + h.Address + " · " + shortID(h.ID)
 		names = append(names, n)
 		ids[n] = h.ID
 	}

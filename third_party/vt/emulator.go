@@ -59,8 +59,8 @@ type Emulator struct {
 	tabstops *uv.TabStops
 
 	// I/O pipes.
-	pr *io.PipeReader
-	pw *io.PipeWriter
+	pr io.ReadCloser
+	pw io.WriteCloser
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -262,7 +262,7 @@ func (e *Emulator) Close() error {
 	}
 
 	e.closed = true
-	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
+	return e.pw.Close() //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
@@ -287,6 +287,15 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 // WriteString writes a string to the terminal output buffer.
 func (e *Emulator) WriteString(s string) (n int, err error) {
 	return e.Write([]byte(s))
+}
+
+// SetInputPipe replaces the input transport before the emulator is used.
+// The emulator owns p and closes it on Close. Callers that share the emulator
+// across threads must serialize configuration with all other state operations.
+func (e *Emulator) SetInputPipe(p io.ReadWriteCloser) {
+	e.pr.Close()
+	e.pw.Close()
+	e.pr, e.pw = p, p
 }
 
 // InputPipe returns the terminal's input pipe.

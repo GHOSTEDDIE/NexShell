@@ -9,6 +9,7 @@ import (
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
 	"github.com/GHOSTEDDIE/nexshell/internal/transfer"
+	"strings"
 )
 
 func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View {
@@ -83,5 +84,20 @@ func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View 
 		},
 	})
 	w.routers = append(w.routers, router)
-	return terminal.NewView(router, router, func(err error) { w.u.status.SetText(w.host.Name + "：" + err.Error()) })
+	view := terminal.NewView(router, router, func(err error) { w.u.status.SetText(w.host.Name + "：" + err.Error()) })
+	id := w.u.terminalsDesktop.Register(w.host.ID, router, func() string { return strings.Join(view.Core.Lines(), "\n") }, func() bool {
+		if w.ctx.Err() != nil {
+			return false
+		}
+		select {
+		case <-session.Done:
+			return false
+		default:
+			return true
+		}
+	})
+	view.SetFontSize(float32(w.u.UI.Preferences().FloatWithFallback("terminal.size", float64(terminal.DefaultFontSize))))
+	view.OnFocus = func() { w.u.terminalsDesktop.Select(id); w.activeSession.Store(session) }
+	w.terminalIDs = append(w.terminalIDs, id)
+	return view
 }

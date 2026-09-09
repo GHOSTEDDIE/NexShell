@@ -13,6 +13,8 @@ import (
 func replaceQuotes(s string) string { return strings.ReplaceAll(s, "'", "'\"'\"'") }
 
 type TerminalSession struct {
+	PID     int
+	closed  chan struct{}
 	Session *ssh.Session
 	Input   io.WriteCloser
 	Output  io.Reader
@@ -60,11 +62,21 @@ func (m *Manager) Terminal(ctx context.Context, host string, rows, cols int) (*T
 		s.Close()
 		return nil, err
 	}
-	if err = s.Shell(); err != nil {
+	command, marker := terminalStartup()
+	if err = s.Start(command); err != nil {
 		s.Close()
 		return nil, err
 	}
-	t := &TerminalSession{Session: s, Input: in, Output: out, Done: make(chan error, 1)}
+	startupCtx, startupCancel := context.WithTimeout(ctx, 10*time.Second)
+	stop := context.AfterFunc(startupCtx, func() { s.Close() })
+	pid, output, err := readTerminalPID(out, marker)
+	stop()
+	startupCancel()
+	if err != nil {
+		s.Close()
+		return nil, err
+	}
+	t := &TerminalSession{PID: pid, closed: make(chan struct{}), Session: s, Input: in, Output: output, Done: make(chan error, 1)}
 	go func() { t.Done <- s.Wait(); close(t.Done); t.Close() }()
 	return t, nil
 }
@@ -74,7 +86,14 @@ func (t *TerminalSession) Resize(rows, cols int) error {
 	}
 	return t.Session.WindowChange(rows, cols)
 }
-func (t *TerminalSession) Close() { t.once.Do(func() { t.Session.Close() }) }
+func (t *TerminalSession) Close() {
+	t.once.Do(func() {
+		if t.closed != nil {
+			close(t.closed)
+		}
+		t.Session.Close()
+	})
+}
 
 // Command never infers a successful remote cancellation from a closed SSH channel.
 func (m *Manager) Command(ctx context.Context, host, command string, stdout, stderr io.Writer) (int, error) {
