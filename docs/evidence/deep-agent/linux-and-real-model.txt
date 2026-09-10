@@ -1,0 +1,32 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-2757003429/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/authentication_and_shell
+=== RUN   TestLinuxLab/sftp_conflict_resume
+=== RUN   TestLinuxLab/changed_host_key
+=== RUN   TestLinuxLab/jump_host
+=== RUN   TestLinuxLab/cancel_unknown_not_replayed
+=== RUN   TestLinuxLab/monitor_and_forwarding
+=== RUN   TestLinuxLab/zmodem_lrzsz
+    integration_test.go:312: cd /tmp/fixture && sz -b -e binary.bin: existing file prefix differs; resume refused; received="rz\r**\x18B00000000000000\r\x8a\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250354430 100600 0 1 40000\x18@\x18kW\xaf|\x18[\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250354430 100600 0 1 40000\x18@\x18kW\xaf|\x18[\x11"
+=== RUN   TestLinuxLab/companion_existing_terminal
+=== RUN   TestLinuxLab/deep_terminal_delegation
+=== RUN   TestLinuxLab/deep_real_model
+    integration_test.go:402: deep task blocked: 模型回复在传输中断开，本轮没有自动重放。请检查模型连接后继续提问。
+=== RUN   TestLinuxLab/eino_approval_execution_verification
+--- FAIL: TestLinuxLab (63.20s)
+    --- PASS: TestLinuxLab/authentication_and_shell (4.61s)
+    --- PASS: TestLinuxLab/sftp_conflict_resume (0.11s)
+    --- PASS: TestLinuxLab/changed_host_key (0.02s)
+    --- PASS: TestLinuxLab/jump_host (0.12s)
+    --- PASS: TestLinuxLab/cancel_unknown_not_replayed (2.16s)
+    --- PASS: TestLinuxLab/monitor_and_forwarding (0.04s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (0.30s)
+    --- PASS: TestLinuxLab/companion_existing_terminal (0.16s)
+    --- PASS: TestLinuxLab/deep_terminal_delegation (0.42s)
+    --- FAIL: TestLinuxLab/deep_real_model (54.47s)
+    --- PASS: TestLinuxLab/eino_approval_execution_verification (0.22s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	66.896s
+FAIL

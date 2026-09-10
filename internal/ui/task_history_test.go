@@ -106,3 +106,28 @@ func TestTaskSelectionCoalescesWithoutDatabaseWork(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestBlockedTaskShowsActionableNotice(t *testing.T) {
+	db, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	task := domain.Task{ID: "blocked", Status: "blocked", Summary: "模型服务未通过身份验证，请检查 API 密钥。"}
+	if err = db.Put("tasks", task.ID, task); err != nil {
+		t.Fatal(err)
+	}
+	var h taskHistory
+	got, changed, err := h.load(db, task.ID)
+	if err != nil || !changed || got.status != "blocked" || len(got.messages) != 1 || got.messages[0].kind != "notice" || got.messages[0].text != task.Summary {
+		t.Fatalf("blocked reason not visible: %+v %v", got, err)
+	}
+	task.Status = "running"
+	if err = db.Put("tasks", task.ID, task); err != nil {
+		t.Fatal(err)
+	}
+	got, _, err = h.load(db, task.ID)
+	if err != nil || len(got.messages) != 0 {
+		t.Fatal("stale blocked notice remained after continuing")
+	}
+}

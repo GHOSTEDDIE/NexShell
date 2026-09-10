@@ -1,0 +1,66 @@
+=== RUN   TestCapabilityBoundaries
+=== RUN   TestCapabilityBoundaries/web_search
+=== RUN   TestCapabilityBoundaries/send_email
+=== RUN   TestCapabilityBoundaries/read_local_file
+=== RUN   TestCapabilityBoundaries/browser_open
+=== RUN   TestCapabilityBoundaries/operate
+=== RUN   TestCapabilityBoundaries/verify_execution
+--- PASS: TestCapabilityBoundaries (0.33s)
+    --- PASS: TestCapabilityBoundaries/web_search (0.06s)
+    --- PASS: TestCapabilityBoundaries/send_email (0.05s)
+    --- PASS: TestCapabilityBoundaries/read_local_file (0.05s)
+    --- PASS: TestCapabilityBoundaries/browser_open (0.05s)
+    --- PASS: TestCapabilityBoundaries/operate (0.07s)
+    --- PASS: TestCapabilityBoundaries/verify_execution (0.05s)
+=== RUN   TestRepeatedToolErrorsAreBounded
+=== RUN   TestRepeatedToolErrorsAreBounded/web_search
+=== RUN   TestRepeatedToolErrorsAreBounded/verify_execution
+--- PASS: TestRepeatedToolErrorsAreBounded (0.07s)
+    --- PASS: TestRepeatedToolErrorsAreBounded/web_search (0.03s)
+    --- PASS: TestRepeatedToolErrorsAreBounded/verify_execution (0.04s)
+=== RUN   TestBlockedConversationCanContinue
+--- PASS: TestBlockedConversationCanContinue (0.07s)
+=== RUN   TestCorrectionBudgetAcrossTools
+--- PASS: TestCorrectionBudgetAcrossTools (0.00s)
+=== RUN   TestUnsupportedOperationOnAuthorizedHost
+--- PASS: TestUnsupportedOperationOnAuthorizedHost (0.05s)
+=== RUN   TestModelTransientHTTPFailure
+=== RUN   TestModelTransientHTTPFailure/stream=false
+=== RUN   TestModelTransientHTTPFailure/stream=true
+--- PASS: TestModelTransientHTTPFailure (0.51s)
+    --- PASS: TestModelTransientHTTPFailure/stream=false (0.26s)
+    --- PASS: TestModelTransientHTTPFailure/stream=true (0.25s)
+=== RUN   TestModelPermanentAndExhaustedFailures
+=== RUN   TestModelPermanentAndExhaustedFailures/401
+=== RUN   TestModelPermanentAndExhaustedFailures/403
+=== RUN   TestModelPermanentAndExhaustedFailures/400
+=== RUN   TestModelPermanentAndExhaustedFailures/404
+=== RUN   TestModelPermanentAndExhaustedFailures/429
+=== RUN   TestModelPermanentAndExhaustedFailures/503
+--- PASS: TestModelPermanentAndExhaustedFailures (1.67s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/401 (0.03s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/403 (0.03s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/400 (0.03s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/404 (0.03s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/429 (0.78s)
+    --- PASS: TestModelPermanentAndExhaustedFailures/503 (0.78s)
+=== RUN   TestModelPartialStreamIsNeverRetried
+--- PASS: TestModelPartialStreamIsNeverRetried (0.00s)
+=== RUN   TestModelRetryCancellation
+--- PASS: TestModelRetryCancellation (0.00s)
+=== RUN   TestInvalidModelResponsesDoNotSucceed
+=== RUN   TestInvalidModelResponsesDoNotSucceed/14
+=== RUN   TestInvalidModelResponsesDoNotSucceed/18
+=== RUN   TestInvalidModelResponsesDoNotSucceed/195
+--- PASS: TestInvalidModelResponsesDoNotSucceed (0.10s)
+    --- PASS: TestInvalidModelResponsesDoNotSucceed/14 (0.03s)
+    --- PASS: TestInvalidModelResponsesDoNotSucceed/18 (0.03s)
+    --- PASS: TestInvalidModelResponsesDoNotSucceed/195 (0.05s)
+=== RUN   TestModelAdaptersAndToolBinding
+=== RUN   TestModelAdaptersAndToolBinding/openai
+=== RUN   TestModelAdaptersAndToolBinding/ollama
+--- PASS: TestModelAdaptersAndToolBinding (0.00s)
+    --- PASS: TestModelAdaptersAndToolBinding/openai (0.00s)
+    --- PASS: TestModelAdaptersAndToolBinding/ollama (0.00s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/agent	4.733s

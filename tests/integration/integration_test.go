@@ -78,7 +78,11 @@ func TestLinuxLab(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer m.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	timeout := 90 * time.Second
+	if os.Getenv("NEXSHELL_REAL_MODEL") == "1" {
+		timeout = 15 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	var key *remote.HostKeyError
 	for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); {
@@ -393,6 +397,10 @@ func TestLinuxLab(t *testing.T) {
 		}
 
 	})
+	t.Run("deep_terminal_delegation", func(t *testing.T) { exerciseDeepTerminal(t, ctx, m, s, secrets, false) })
+	if os.Getenv("NEXSHELL_REAL_MODEL") == "1" {
+		t.Run("deep_real_model", func(t *testing.T) { exerciseDeepTerminal(t, ctx, m, s, secrets, true) })
+	}
 	t.Run("eino_approval_execution_verification", func(t *testing.T) {
 		if _, e := m.WriteFile(ctx, h.ID, "/tmp/fixture/repair.conf", "new", []byte("enabled=false\n")); e != nil {
 			t.Fatal(e)
@@ -433,7 +441,13 @@ func TestLinuxLab(t *testing.T) {
 		if len(results) != 0 {
 			t.Fatal("shell executed without approval")
 		}
-		approvals, _ := store.All[agent.Approval](s, "approvals")
+		allApprovals, _ := store.All[agent.Approval](s, "approvals")
+		approvals := []agent.Approval{}
+		for _, a := range allApprovals {
+			if a.Request.TaskID == task.ID {
+				approvals = append(approvals, a)
+			}
+		}
 		if len(approvals) != 1 {
 			t.Fatalf("approval count %d", len(approvals))
 		}

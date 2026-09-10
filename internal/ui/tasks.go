@@ -70,7 +70,7 @@ func (u *App) agentPanel() fyne.CanvasObject {
 	var menuButton *actionButton
 	menuButton = action("", designIcon("more"), func() {
 		history := func() { dialog.ShowCustom("历史对话", "关闭", sized(u.taskList, 480, 36), u.Window) }
-		menu := fyne.NewMenu("", fyne.NewMenuItem("新对话", func() { u.newConversationDialog("") }), fyne.NewMenuItem("历史对话", history), fyne.NewMenuItem("运维任务", u.newTaskDialog), fyne.NewMenuItem("待确认操作", u.approvalDialog), fyne.NewMenuItem("恢复任务", func() { id := u.taskID; u.work("恢复任务", func() error { return u.Agent.Resume(id) }) }))
+		menu := fyne.NewMenu("", fyne.NewMenuItem("新对话", func() { u.newConversationDialog("") }), fyne.NewMenuItem("历史对话", history), fyne.NewMenuItem("运维任务", u.newTaskDialog), fyne.NewMenuItem("待确认操作", u.approvalDialog), fyne.NewMenuItem("恢复任务", u.resumeTask), fyne.NewMenuItem("管理记忆", u.memoryDialog))
 		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(menuButton).Add(fyne.NewPos(0, 30)))
 	})
 	header := sized(inset(container.NewBorder(nil, nil, container.NewHBox(widget.NewIcon(designIcon("spark")), headingText("助手")), container.NewHBox(menuButton, action("", designIcon("close"), u.toggleAssistant))), 0, 14, 0, 18), 0, 38)
@@ -204,13 +204,18 @@ func (u *App) approvalDialog() {
 		return
 	}
 	for _, a := range all {
-		if a.Request.TaskID != u.taskID || a.Decided {
+		var task domain.Task
+		if u.Store.Load("tasks", u.taskID, &task) != nil {
+			return
+		}
+		if a.Request.TaskID != u.taskID || a.Decided || a.GrantID != task.Grant.ID {
 			continue
 		}
 		id := u.taskID
 		approval := a
 		h, _ := u.Store.Host(a.Request.HostID)
 		body := fmt.Sprintf("服务器：%s (%s@%s)\n操作：%s\n资源：%s\n\n命令：\n%s\n\n拟写入内容：\n%s", h.Name, h.User, h.Address, a.Request.Operation, a.Request.Resource, a.Request.Command, a.Request.Content)
+		body = "发起助手：" + agentLabel(a.Request.AgentName) + "\n子运行：" + a.Request.RunID + "\n" + body
 		preview := newReadOnly()
 		preview.SetText(body)
 		preview.SetMinRowsVisible(16)

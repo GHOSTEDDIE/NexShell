@@ -1,0 +1,7 @@
+--- FAIL: TestWorkspaceContextEmptyArgumentsConversation (0.02s)
+    workspace_context_test.go:89: workspace_context failed: status=failed summary=[NodeRunError] failed to stream tool call context-call: [LocalFunc] failed to unmarshal arguments in json, toolName=workspace_context, err="Syntax error no sources available, the input json is empty: errors.SyntaxError{Pos:0, Src:\"\", Code:0x0, Msg:\"invalid chars\"}"
+        ------------------------
+        node path: [node_1, ToolNode]
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/agent	0.916s
+FAIL

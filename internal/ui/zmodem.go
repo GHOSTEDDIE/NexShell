@@ -97,6 +97,7 @@ func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View 
 		}
 	})
 	view.SetFontSize(float32(w.u.UI.Preferences().FloatWithFallback("terminal.size", float64(terminal.DefaultFontSize))))
+	w.u.applyTerminalBackground(view)
 	view.OnFocus = func() { w.u.terminalsDesktop.Select(id); w.activeSession.Store(session) }
 	w.terminalIDs = append(w.terminalIDs, id)
 	return view

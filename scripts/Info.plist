@@ -5,6 +5,7 @@
 <key>CFBundleIdentifier</key><string>io.nexshell.desktop</string>
 <key>CFBundleName</key><string>NexShell</string>
 <key>CFBundleDisplayName</key><string>NexShell</string>
+<key>CFBundleIconFile</key><string>icon.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>

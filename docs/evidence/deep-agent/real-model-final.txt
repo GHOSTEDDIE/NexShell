@@ -1,0 +1,11 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-1692460757/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/deep_real_model
+    integration_test.go:402: real model failed cross-conversation recall
+--- FAIL: TestLinuxLab (142.01s)
+    --- FAIL: TestLinuxLab/deep_real_model (141.38s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	143.186s
+FAIL

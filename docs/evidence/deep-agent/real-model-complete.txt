@@ -1,0 +1,10 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-243455497/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/deep_real_model
+    integration_test.go:402: REAL_MODEL: planning, delegation, exact terminal approval, independent verification, host memory and new conversation recall passed
+--- PASS: TestLinuxLab (120.54s)
+    --- PASS: TestLinuxLab/deep_real_model (119.96s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/tests/integration	122.605s

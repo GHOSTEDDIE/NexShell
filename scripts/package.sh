@@ -17,7 +17,7 @@ case "$target_os" in
     cp "bin/$binary_name" "$bundle/Contents/MacOS/nexshell.next"
     mv -f "$bundle/Contents/MacOS/nexshell.next" "$bundle/Contents/MacOS/nexshell"
     cp scripts/Info.plist "$bundle/Contents/Info.plist"
-    cp -f LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt "$bundle/Contents/Resources/"
+    cp -f LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt scripts/icon.icns "$bundle/Contents/Resources/"
     codesign --force --deep --sign - "$bundle"
     ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/NexShell-darwin-$target_arch.zip"
     ;;

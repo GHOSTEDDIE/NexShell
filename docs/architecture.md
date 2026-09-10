@@ -5,7 +5,7 @@
 - [FinalShell 官方产品页](https://www.hostbuf.com/t/988.html)：SSH 多标签、同屏文件管理、监控和快捷命令作为功能对标。
 - [FinalShell 官方常见问题](https://www.hostbuf.com/t/1088.html)：交互通道、执行通道和文件能力要独立呈现错误。
 - [Codex 工具调度源码](https://github.com/openai/codex/blob/d6489472f3c15e87d2d7763a5fde033545c530f8/codex-rs/core/src/tools/orchestrator.rs)：借鉴请求绑定、统一授权与执行生命周期，不移植 Rust 实现。
-- [Eino Runner](https://github.com/cloudwego/eino/blob/v0.9.13/adk/runner.go)、[TurnLoop](https://github.com/cloudwego/eino/blob/v0.9.13/adk/turn_loop.go)：复用工具循环、流式事件与检查点。
+- [Eino Runner](https://github.com/cloudwego/eino/blob/v0.10.0-alpha.9/adk/runner.go)、[TurnLoop](https://github.com/cloudwego/eino/blob/v0.10.0-alpha.9/adk/turn_loop.go)：复用工具循环、流式事件与检查点。
 - [Fyne](https://github.com/fyne-io/fyne/tree/v2.8.1)、[终端模型](https://github.com/charmbracelet/x/tree/3986e9119cf98efcf5809969e11ad369fddb5522/vt)：Go 界面与终端协议模型分离。
 - [Go SSH](https://pkg.go.dev/golang.org/x/crypto/ssh)、[SFTP](https://github.com/pkg/sftp)、[系统凭据库](https://github.com/zalando/go-keyring)、[SQLite](https://pkg.go.dev/modernc.org/sqlite)。
 - [trzsz-go 的 ZMODEM 调用](https://github.com/trzsz/trzsz-go/blob/main/trzsz/zmodem.go)依赖本地进程，因此本项目实现独立的 Go 编解码与协议状态机，以 lrzsz 作互通对端。
@@ -18,7 +18,7 @@ flowchart TD
     UI --> Files[SFTP 文件服务]
     UI --> Monitor[监控与转发]
     UI --> Tasks[任务服务]
-    Tasks --> Eino[Eino TurnLoop / Runner]
+    Tasks --> Eino[Eino DeepAgent / TurnLoop / Runner]
     Eino --> Policy[任务授权与具体操作确认]
     Policy --> Executor[统一执行与验证]
     Executor --> SSH
@@ -53,3 +53,7 @@ SSH 账号权限是远端执行的实际权限。客户端工具授权不是服�
 默认目录为系统用户配置目录下的 NexShell。`state.db` 保存主机配置、模型配置、任务、操作批准、消息历史、事件、执行记录与检查点；`known_hosts` 保存本应用核实过的服务器身份；`artifacts` 保存执行输出。登录密码、私钥口令和模型 API 密钥只在系统凭据库中保存。
 
 主机 JSON 导出不携带凭据，但包含服务器地址、账号和私钥路径，应按自身运维资料管理。应用本地数据不是加密审计归档，也不提供多人权限系统。
+
+## DeepAgent 演进
+
+主助手使用官方 DeepAgent，单层子助手复用授权和执行入口。计划、子任务和按主机的验证记录持久化到 SQLite。标准 Skills 与自动记忆复用 Eino 官方中间件，详情见 [运行与迁移说明](deep-agent.md)。

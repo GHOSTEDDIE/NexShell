@@ -1,0 +1,28 @@
+=== RUN   TestCapabilityBoundaries
+=== RUN   TestCapabilityBoundaries/web_search
+=== RUN   TestCapabilityBoundaries/send_email
+=== RUN   TestCapabilityBoundaries/read_local_file
+=== RUN   TestCapabilityBoundaries/browser_open
+=== RUN   TestCapabilityBoundaries/operate
+=== RUN   TestCapabilityBoundaries/verify_execution
+--- PASS: TestCapabilityBoundaries (0.32s)
+    --- PASS: TestCapabilityBoundaries/web_search (0.07s)
+    --- PASS: TestCapabilityBoundaries/send_email (0.06s)
+    --- PASS: TestCapabilityBoundaries/read_local_file (0.05s)
+    --- PASS: TestCapabilityBoundaries/browser_open (0.05s)
+    --- PASS: TestCapabilityBoundaries/operate (0.05s)
+    --- PASS: TestCapabilityBoundaries/verify_execution (0.05s)
+=== RUN   TestRepeatedToolErrorsAreBounded
+=== RUN   TestRepeatedToolErrorsAreBounded/web_search
+=== RUN   TestRepeatedToolErrorsAreBounded/verify_execution
+--- PASS: TestRepeatedToolErrorsAreBounded (0.07s)
+    --- PASS: TestRepeatedToolErrorsAreBounded/web_search (0.03s)
+    --- PASS: TestRepeatedToolErrorsAreBounded/verify_execution (0.04s)
+=== RUN   TestModelTransientHTTPFailure
+=== RUN   TestModelTransientHTTPFailure/stream=false
+=== RUN   TestModelTransientHTTPFailure/stream=true
+--- PASS: TestModelTransientHTTPFailure (0.51s)
+    --- PASS: TestModelTransientHTTPFailure/stream=false (0.26s)
+    --- PASS: TestModelTransientHTTPFailure/stream=true (0.25s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/agent	2.810s

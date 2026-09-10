@@ -64,8 +64,12 @@ func (h *taskHistory) load(source taskSource, id string) (taskUpdate, bool, erro
 		text += "\n" + task.Summary
 	}
 	messages := append([]chatMessage(nil), h.messages...)
-	if task.Status == "failed" {
+	if task.Status == "blocked" {
+		text += "\n" + task.Summary
 		messages = append(messages, chatMessage{"notice", task.Summary})
+	}
+	if task.Status == "failed" {
+		messages = append(messages, chatMessage{"execution", task.Summary}, chatMessage{"notice", "本轮排查暂时无法继续，请查看执行记录中的原因后继续提问。"})
 	}
 	return taskUpdate{id, task.Status, text, messages}, true, nil
 }
@@ -137,7 +141,7 @@ func (u *App) watchTasks() {
 			if u.ctx.Err() != nil || u.taskID != selection.id || u.taskRevision != selection.revision {
 				return
 			}
-			states := map[string]string{"ready": "就绪", "running": "运行中", "awaiting_approval": "等待确认", "interrupted": "已暂停", "failed": "执行失败", "completed": "验证完成", "needs_verification": "等待验证"}
+			states := map[string]string{"blocked": "需要调整", "ready": "就绪", "running": "运行中", "awaiting_approval": "等待确认", "interrupted": "已暂停", "failed": "执行失败", "completed": "验证完成", "needs_verification": "等待验证"}
 			u.taskStatus.SetText(states[update.status])
 			if u.taskStatus.Text != "" {
 				u.taskStatus.Show()

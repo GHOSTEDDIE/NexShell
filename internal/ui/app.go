@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -23,6 +24,7 @@ import (
 )
 
 type App struct {
+	terminalBackground             image.Image
 	groupCounts                    map[string]int
 	preferredModel                 string
 	stopAction, approvalAction     *actionButton
@@ -76,6 +78,7 @@ func New(app fyne.App, s *store.Store, m *remote.Manager, e *remote.Executor, a 
 	u.Window.SetPadded(false)
 	u.Window.Resize(fyne.NewSize(1440, 940))
 	u.status = widget.NewLabel("就绪")
+	u.restoreTerminalBackground()
 	u.connecting = map[string]bool{}
 	u.serverStatus = container.NewStack(emptyServerStatus())
 	u.tabs = newTabView(true)

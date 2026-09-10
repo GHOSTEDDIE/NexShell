@@ -26,9 +26,17 @@ func NewModel(ctx context.Context, p domain.ModelProfile, secrets remote.Secrets
 		if err != nil {
 			return nil, err
 		}
-		return openai.NewChatModel(ctx, &openai.ChatModelConfig{APIKey: key, BaseURL: p.BaseURL, Model: p.Model, Timeout: 180 * time.Second})
+		cm, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{APIKey: key, BaseURL: p.BaseURL, Model: p.Model, Timeout: 180 * time.Second})
+		if err != nil {
+			return nil, err
+		}
+		return &resilientModel{cm}, nil
 	case "ollama":
-		return ollama.NewChatModel(ctx, &ollama.ChatModelConfig{BaseURL: p.BaseURL, Model: p.Model, Timeout: 180 * time.Second})
+		cm, err := ollama.NewChatModel(ctx, &ollama.ChatModelConfig{BaseURL: p.BaseURL, Model: p.Model, Timeout: 180 * time.Second})
+		if err != nil {
+			return nil, err
+		}
+		return &resilientModel{cm}, nil
 	}
 	return nil, errors.New("不支持的模型接口")
 }

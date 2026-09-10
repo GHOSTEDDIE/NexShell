@@ -1,0 +1,34 @@
+--- FAIL: TestCapabilityBoundaries (0.16s)
+    --- FAIL: TestCapabilityBoundaries/web_search (0.02s)
+        capability_boundary_test.go:101: capability request aborted: failed [NodeRunError] tool web_search not found in toolsNode indexes
+            ------------------------
+            node path: [node_1, ToolNode]
+    --- FAIL: TestCapabilityBoundaries/send_email (0.02s)
+        capability_boundary_test.go:101: capability request aborted: failed [NodeRunError] tool send_email not found in toolsNode indexes
+            ------------------------
+            node path: [node_1, ToolNode]
+    --- FAIL: TestCapabilityBoundaries/read_local_file (0.02s)
+        capability_boundary_test.go:101: capability request aborted: failed [NodeRunError] tool read_local_file not found in toolsNode indexes
+            ------------------------
+            node path: [node_1, ToolNode]
+    --- FAIL: TestCapabilityBoundaries/browser_open (0.02s)
+        capability_boundary_test.go:101: capability request aborted: failed [NodeRunError] tool browser_open not found in toolsNode indexes
+            ------------------------
+            node path: [node_1, ToolNode]
+--- FAIL: TestRepeatedToolErrorsAreBounded (0.15s)
+    --- FAIL: TestRepeatedToolErrorsAreBounded/web_search (0.02s)
+        capability_boundary_test.go:116: unbounded correction loop: 1 calls, failed [NodeRunError] tool web_search not found in toolsNode indexes
+            ------------------------
+            node path: [node_1, ToolNode]
+    --- FAIL: TestRepeatedToolErrorsAreBounded/verify_execution (0.13s)
+        capability_boundary_test.go:116: unbounded correction loop: 100 calls, failed [NodeRunError] run node[ChatModel] pre processor fail: exceeds max iterations
+            ------------------------
+            node path: [node_1, ChatModel]
+--- FAIL: TestModelTransientHTTPFailure (0.00s)
+    --- FAIL: TestModelTransientHTTPFailure/stream=false (0.00s)
+        model_failures_test.go:62: <nil> error, status code: 503, status: 503 Service Unavailable, message: temporarily unavailable
+    --- FAIL: TestModelTransientHTTPFailure/stream=true (0.00s)
+        model_failures_test.go:42: error, status code: 503, status: 503 Service Unavailable, message: temporarily unavailable
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/agent	1.073s
+FAIL

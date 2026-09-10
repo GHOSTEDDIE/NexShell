@@ -1,0 +1,12 @@
+=== RUN   TestInvalidModelResponsesDoNotSucceed
+=== RUN   TestInvalidModelResponsesDoNotSucceed/14
+    model_failures_test.go:171: invalid response treated as success: ready 
+=== RUN   TestInvalidModelResponsesDoNotSucceed/18
+=== RUN   TestInvalidModelResponsesDoNotSucceed/195
+--- FAIL: TestInvalidModelResponsesDoNotSucceed (0.14s)
+    --- FAIL: TestInvalidModelResponsesDoNotSucceed/14 (0.06s)
+    --- PASS: TestInvalidModelResponsesDoNotSucceed/18 (0.03s)
+    --- PASS: TestInvalidModelResponsesDoNotSucceed/195 (0.05s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/agent	0.996s
+FAIL

@@ -1,0 +1,7 @@
+--- FAIL: TestVerificationErrorSelfCorrects (0.02s)
+    tool_recovery_test.go:91: verification aborted instead of self-correcting: failed [NodeRunError] failed to stream tool call verify-0: [LocalFunc] failed to invoke tool, toolName=verify_execution, err=验证证据不满足条件
+        ------------------------
+        node path: [node_1, ToolNode]
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/agent	0.817s
+FAIL

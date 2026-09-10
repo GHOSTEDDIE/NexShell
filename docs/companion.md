@@ -16,3 +16,7 @@
 - 确定性 Eino 模型连续两轮普通聊天，历史保留且回到就绪。
 - `go test -race -tags integration ./tests/integration -v -count=1` 通过：真实 Linux SSH 终端中保留目录与环境变量；原有 SSH、文件传输、跳板、隧道、ZMODEM 和 Eino 审批修复验证场景通过。
 - 本次没有调用用户配置的真实模型服务；模型自主选择工具的端到端效果仍需真实模型验证。
+
+## DeepAgent
+
+当前主助手基于 Eino DeepAgent，支持计划清单、独立上下文子任务和按服务器隔离的自动记忆。可以在助手菜单管理记忆；旧对话需要确认范围后恢复。参见 [DeepAgent 运行与迁移](deep-agent.md)。

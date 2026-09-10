@@ -1,0 +1,9 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-2906798303/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/zmodem_lrzsz
+--- PASS: TestLinuxLab (0.67s)
+    --- PASS: TestLinuxLab/zmodem_lrzsz (0.17s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/tests/integration	2.397s

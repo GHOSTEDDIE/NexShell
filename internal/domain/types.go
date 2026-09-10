@@ -54,18 +54,21 @@ type Grant struct {
 }
 
 type Task struct {
-	Mode      string    `json:"mode,omitempty"`
-	ID        string    `json:"id"`
-	Goal      string    `json:"goal"`
-	ProfileID string    `json:"profile_id"`
-	Grant     Grant     `json:"grant"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	Summary   string    `json:"summary,omitempty"`
-	Updates   []string  `json:"updates,omitempty"`
+	RuntimeVersion string    `json:"runtime_version,omitempty"`
+	Mode           string    `json:"mode,omitempty"`
+	ID             string    `json:"id"`
+	Goal           string    `json:"goal"`
+	ProfileID      string    `json:"profile_id"`
+	Grant          Grant     `json:"grant"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
+	Summary        string    `json:"summary,omitempty"`
+	Updates        []string  `json:"updates,omitempty"`
 }
 
 type Request struct {
+	RunID          string `json:"run_id,omitempty"`
+	AgentName      string `json:"agent_name,omitempty"`
 	TaskID         string `json:"task_id"`
 	CallID         string `json:"call_id"`
 	HostID         string `json:"host_id"`

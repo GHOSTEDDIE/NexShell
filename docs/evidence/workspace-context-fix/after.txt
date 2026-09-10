@@ -1,0 +1,16 @@
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/empty
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/empty_object
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/whitespace
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/fragmented_object
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/malformed_json
+=== RUN   TestWorkspaceContextEmptyArgumentsConversation/required_input_still_rejected
+--- PASS: TestWorkspaceContextEmptyArgumentsConversation (0.25s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/empty (0.05s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/empty_object (0.05s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/whitespace (0.05s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/fragmented_object (0.05s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/malformed_json (0.03s)
+    --- PASS: TestWorkspaceContextEmptyArgumentsConversation/required_input_still_rejected (0.03s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/agent	2.116s

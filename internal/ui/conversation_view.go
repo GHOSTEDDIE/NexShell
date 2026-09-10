@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"encoding/json"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/GHOSTEDDIE/nexshell/internal/agent"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"strings"
 )
@@ -21,10 +24,41 @@ func appendChatEvent(messages []chatMessage, e domain.Event) []chatMessage {
 		e.Text = strings.Split(e.Text, "\n\n[发送时")[0]
 	case "assistant_delta", "assistant":
 		kind = "assistant"
-	case "execution_start", "execution_result":
+	case "execution_start", "execution_result", "tool_feedback":
 		kind = "execution"
 	case "verified":
 		kind = "verified"
+	case "plan_updated":
+		var todos []struct{ Content, Status string }
+		if json.Unmarshal([]byte(e.Text), &todos) != nil {
+			return messages
+		}
+		var lines []string
+		for _, todo := range todos {
+			mark := "○"
+			if todo.Status == "in_progress" {
+				mark = "▶"
+			} else if todo.Status == "completed" {
+				mark = "✓"
+			}
+			lines = append(lines, mark+" "+todo.Content)
+		}
+		e.Text = strings.Join(lines, "\n")
+		kind = "plan"
+	case "subtask_state":
+		var sub agent.SubtaskEvent
+		if json.Unmarshal([]byte(e.Text), &sub) != nil {
+			return messages
+		}
+		state := map[string]string{"running": "执行中", "completed": "已返回结果", "interrupted": "等待恢复", "failed": "未完成"}[sub.State]
+		e.Text = fmt.Sprintf("%s · %s\n%s", agentLabel(sub.Agent), state, sub.Message)
+		kind = "subtask"
+	case "memory_state":
+		var memory agent.MemoryEvent
+		if json.Unmarshal([]byte(e.Text), &memory) == nil {
+			e.Text = memory.Message
+		}
+		kind = "memory"
 	case "approval_required":
 		e.Text = "需要确认具体操作，请点击“待确认操作”。"
 		kind = "notice"
@@ -99,8 +133,11 @@ func newChatBlock(m chatMessage) *chatBlock {
 	switch m.kind {
 	case "user":
 		b.content = inset(panel(padded(b.body, 12), colorMessage, false, 7), 0, 0, 0, 20)
+	case "plan", "subtask", "memory":
+		titles := map[string]string{"plan": "任务计划", "subtask": "子任务", "memory": "记忆状态"}
+		b.content = widget.NewAccordion(widget.NewAccordionItem(titles[m.kind], boundedChatContent(b.body, 120)))
 	case "execution":
-		b.content = widget.NewAccordion(widget.NewAccordionItem("执行记录", container.NewVScroll(sized(b.body, 0, 180))))
+		b.content = widget.NewAccordion(widget.NewAccordionItem("执行记录", boundedChatContent(b.body, 180)))
 	case "verified":
 		b.content = panel(padded(container.NewVBox(textUI("✓ 检查完成", sizeControl, theme.ColorNameSuccess, true), widget.NewSeparator(), b.body), 14), theme.ColorNameBackground, true, 7)
 	case "notice":
@@ -112,6 +149,10 @@ func newChatBlock(m chatMessage) *chatBlock {
 }
 func (b *chatBlock) setText(s string) {
 	b.last = s
+	if b.kind == "assistant" {
+		b.body.ParseMarkdown(s)
+		return
+	}
 	b.body.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: s, Style: widget.RichTextStyle{Inline: true, SizeName: sizeBody, ColorName: theme.ColorNameForeground, TextStyle: fyne.TextStyle{Monospace: b.kind == "execution"}}}}
 	b.body.Refresh()
 }
@@ -143,4 +184,20 @@ func (v *chatInput) TypedKey(e *fyne.KeyEvent) {
 		}
 	}
 	v.Entry.TypedKey(e)
+}
+
+func agentLabel(name string) string {
+	switch name {
+	case "operator":
+		return "主助手"
+	case "operations_worker":
+		return "运维子助手"
+	}
+	return "助手"
+}
+
+func boundedChatContent(body fyne.CanvasObject, height float32) fyne.CanvasObject {
+	scroll := container.NewVScroll(body)
+	scroll.SetMinSize(fyne.NewSize(0, height))
+	return scroll
 }

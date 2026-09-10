@@ -1904,7 +1904,7 @@ LICENSE-APACHE
 
 
 
-github.com/cloudwego/eino v0.9.13
+github.com/cloudwego/eino v0.10.0-alpha.9
 LICENSE-APACHE
                                  Apache License
                            Version 2.0, January 2004
@@ -8090,7 +8090,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Noto Sans CJK SC (Regular and Medium) / Noto Sans Mono CJK SC
+Noto Sans Mono CJK SC
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.
 

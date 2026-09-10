@@ -1,0 +1,8 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+--- FAIL: TestTerminalANSIReadability (0.02s)
+    color_readability_test.go:45: d contrast 1.04 < 4.5
+    color_readability_test.go:45: a contrast 1.52 < 4.5
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/terminal	0.744s
+FAIL

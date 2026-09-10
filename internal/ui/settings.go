@@ -163,7 +163,7 @@ func (u *App) settingsDialog(page string) {
 	terminalSize := widget.NewSelect(terminalFontOptions(), nil)
 	terminalSize.SetSelected(fmt.Sprintf("%.0f px", u.UI.Preferences().FloatWithFallback("terminal.size", float64(terminal.DefaultFontSize))))
 	terminalSize.OnChanged = func(v string) { n, _ := strconv.Atoi(strings.Fields(v)[0]); u.setTerminalSize(float32(n)) }
-	appearancePane := container.NewVScroll(inset(container.NewVBox(headingText("应用外观"), metaText("选择你习惯的工作台配色。"), gap(14), cards, gap(14), panel(padded(container.NewHBox(widget.NewIcon(designIcon("monitor")), u.settingsThemeStatus), 12), colorPanel, true, 5), gap(20), widget.NewSeparator(), gap(12), headingText("文字显示"), gap(10), container.NewBorder(nil, nil, container.NewVBox(bodyText("界面文字"), metaText("标题、正文和辅助信息同步缩放")), sized(fontSize, 155, 36)), gap(14), container.NewBorder(nil, nil, container.NewVBox(bodyText("终端文字"), metaText("使用等宽字体，保持输出对齐")), sized(terminalSize, 155, 36))), 24, 30, 24, 30))
+	appearancePane := container.NewVScroll(inset(container.NewVBox(headingText("应用外观"), metaText("选择你习惯的工作台配色。"), gap(14), cards, gap(14), panel(padded(container.NewHBox(widget.NewIcon(designIcon("monitor")), u.settingsThemeStatus), 12), colorPanel, true, 5), gap(20), widget.NewSeparator(), gap(12), headingText("文字显示"), gap(10), container.NewBorder(nil, nil, container.NewVBox(bodyText("界面文字"), metaText("标题、正文和辅助信息同步缩放")), sized(fontSize, 155, 36)), gap(14), container.NewBorder(nil, nil, container.NewVBox(bodyText("终端文字"), metaText("使用等宽字体，保持输出对齐")), sized(terminalSize, 155, 36)), gap(20), widget.NewSeparator(), gap(12), u.backgroundSettings()), 24, 30, 24, 30))
 	content := container.NewStack(modelPane)
 	var appearanceButton, modelsButton *actionButton
 	switchPage := func(name string) {

@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"image"
 	"image/color"
 	"io"
 	"math"
@@ -25,6 +26,8 @@ type View struct {
 	Core                         *Core
 	OnResize                     func(int, int)
 	OnError                      func(error)
+	backgroundImage              image.Image
+	backgroundOpacity            float64
 	fontSize                     float32
 	cellSize                     fyne.Size
 	cols, rows                   int
@@ -343,20 +346,27 @@ func (v *View) mouseAt(p fyne.Position) uv.Mouse {
 }
 func (v *View) Send(text string) { v.enqueue(func() { v.Core.Text(text, false) }) }
 func (v *View) CreateRenderer() fyne.WidgetRenderer {
-	return &renderer{v: v, background: canvas.NewRectangle(theme.Color("terminalBackground"))}
+	wallpaper := canvas.NewImageFromImage(v.backgroundImage)
+	wallpaper.FillMode = canvas.ImageFillCover
+	return &renderer{v: v, background: canvas.NewRectangle(theme.Color("terminalBackground")), wallpaper: wallpaper}
 }
 
 type renderer struct {
 	v          *View
 	background *canvas.Rectangle
+	wallpaper  *canvas.Image
 	texts      []*canvas.Text
 	backs      []*canvas.Rectangle
 	objects    []fyne.CanvasObject
 }
 
-func (r *renderer) Layout(size fyne.Size) { r.background.Resize(size); r.paint() }
-func (r *renderer) MinSize() fyne.Size    { return r.v.MinSize() }
-func (r *renderer) Refresh()              { r.paint(); canvas.Refresh(r.v) }
+func (r *renderer) Layout(size fyne.Size) {
+	r.background.Resize(size)
+	r.wallpaper.Resize(size)
+	r.paint()
+}
+func (r *renderer) MinSize() fyne.Size { return r.v.MinSize() }
+func (r *renderer) Refresh()           { r.paint(); canvas.Refresh(r.v) }
 func (r *renderer) Objects() []fyne.CanvasObject {
 	if len(r.objects) == 0 {
 		r.paint()
@@ -366,6 +376,16 @@ func (r *renderer) Objects() []fyne.CanvasObject {
 func (r *renderer) Destroy() {}
 func (r *renderer) paint() {
 	v := r.v
+	if r.wallpaper.Image != v.backgroundImage || r.wallpaper.Translucency != 1-v.backgroundOpacity {
+		r.wallpaper.Image = v.backgroundImage
+		r.wallpaper.Translucency = 1 - v.backgroundOpacity
+		r.wallpaper.Refresh()
+	}
+	if v.backgroundImage == nil {
+		r.wallpaper.Hide()
+	} else {
+		r.wallpaper.Show()
+	}
 	r.background.FillColor = theme.Color("terminalBackground")
 	s := v.Core.Snapshot(v.offset)
 	if v.selectionScreen != nil {
@@ -375,7 +395,7 @@ func (r *renderer) paint() {
 	if len(r.texts) != n {
 		r.texts = make([]*canvas.Text, n)
 		r.backs = make([]*canvas.Rectangle, n)
-		r.objects = []fyne.CanvasObject{r.background}
+		r.objects = []fyne.CanvasObject{r.background, r.wallpaper}
 		for i := 0; i < n; i++ {
 			r.backs[i] = canvas.NewRectangle(color.Transparent)
 			r.texts[i] = canvas.NewText("", color.White)
@@ -394,7 +414,7 @@ func (r *renderer) paint() {
 				continue
 			}
 			t, b := r.texts[i], r.backs[i]
-			fg, bg := cell.Style.Fg, cell.Style.Bg
+			fg, bg := displayColor(cell.Style.Fg, true), displayColor(cell.Style.Bg, false)
 			if fg == nil {
 				fg = theme.Color("terminalForeground")
 			}
@@ -409,6 +429,9 @@ func (r *renderer) paint() {
 			}
 			if v.focused && x == s.CursorX && y == s.CursorY {
 				bg = theme.Color("terminalSelection")
+			}
+			if v.backgroundImage != nil && cell.Style.Bg == nil && cell.Style.Attrs&uv.AttrReverse == 0 && !(start >= 0 && i >= start && i <= end) && !(v.focused && x == s.CursorX && y == s.CursorY) {
+				bg = color.Transparent
 			}
 			b.FillColor = bg
 			b.Move(fyne.NewPos(float32(x)*v.cellSize.Width, float32(y)*v.cellSize.Height))
@@ -437,4 +460,11 @@ func asciiCell(s string) bool {
 		}
 	}
 	return true
+}
+
+// SetBackground applies a shared decoded image without changing terminal cells.
+func (v *View) SetBackground(img image.Image, opacity float64) {
+	v.backgroundImage = img
+	v.backgroundOpacity = math.Max(0, math.Min(.15, opacity))
+	v.Refresh()
 }
