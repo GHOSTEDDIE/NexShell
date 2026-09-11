@@ -18,6 +18,8 @@ https://github.com/YellowDusk04/einoclaw/blob/f7b790f966487e7b9f8202c9d024f714b3
 
 工具参数错误继续向模型提供可修正反馈。取消、审批中断、存储错误和未知结果保留原有控制流。终端输入成功只代表交付成功，仍需主助手独立读取并验证远端状态。
 
+助手也提供受控的本地文件读取和部署包上传工具，与服务器工具共用授权及执行记录，见 [本地文件与部署包](local-deployment.md)。
+
 ## Skills 与记忆
 
 官方 Skills 中间件统一加载应用内置手册及 `<数据目录>/skills/*/SKILL.md`，名称保留 `builtin:`、`local:` 前缀。复用既有路径检查和文件大小约束。本版本的技能不能通过 frontmatter 自行改模型或创建额外 Agent；需要委派时由主助手调用 task。

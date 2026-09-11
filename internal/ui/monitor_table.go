@@ -269,7 +269,7 @@ func (m *monitorTable) showExpanded() {
 	m.expandedSelection.SetMinSize(fyne.NewSize(0, 120))
 	m.expandedSelection.Hide()
 	content := container.NewBorder(m.expandedMessage, m.expandedSelection, nil, nil, m.expanded)
-	d := dialog.NewCustom(m.kind, "关闭", content, m.parent)
+	d := newMotionDialog(m.kind, "关闭", content, m.parent)
 	m.expandedDialog = d
 	d.SetOnClosed(func() {
 		m.expanded = nil

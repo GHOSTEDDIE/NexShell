@@ -1,0 +1,17 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-682672335/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+?   	github.com/GHOSTEDDIE/nexshell/cmd/nexshell	[no test files]
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-2689770863/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+ok  	github.com/GHOSTEDDIE/nexshell/internal/agent	6.798s
+?   	github.com/GHOSTEDDIE/nexshell/internal/domain	[no test files]
+?   	github.com/GHOSTEDDIE/nexshell/internal/localfiles	[no test files]
+?   	github.com/GHOSTEDDIE/nexshell/internal/platforminput	[no test files]
+ok  	github.com/GHOSTEDDIE/nexshell/internal/remote	1.731s
+ok  	github.com/GHOSTEDDIE/nexshell/internal/store	3.070s
+ok  	github.com/GHOSTEDDIE/nexshell/internal/terminal	(cached)
+ok  	github.com/GHOSTEDDIE/nexshell/internal/transfer	(cached)
+ok  	github.com/GHOSTEDDIE/nexshell/internal/transfer/zmodem	(cached)
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	11.852s

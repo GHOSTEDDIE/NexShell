@@ -45,6 +45,7 @@ type ModelProfile struct {
 }
 
 type Grant struct {
+	LocalRoots []string          `json:"local_roots,omitempty"`
 	ID         string            `json:"id"`
 	HostIDs    []string          `json:"host_ids"`
 	Identities map[string]string `json:"identities"` // snapshot digest of host connection configuration
@@ -67,6 +68,10 @@ type Task struct {
 }
 
 type Request struct {
+	ReadOffset     int64  `json:"read_offset,omitempty"`
+	LocalPath      string `json:"local_path,omitempty"`
+	SourceHash     string `json:"source_hash,omitempty"`
+	UploadMode     string `json:"upload_mode,omitempty"`
 	RunID          string `json:"run_id,omitempty"`
 	AgentName      string `json:"agent_name,omitempty"`
 	TaskID         string `json:"task_id"`

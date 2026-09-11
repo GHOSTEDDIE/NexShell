@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/localfiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
 	"github.com/cloudwego/eino/adk"
@@ -51,11 +52,15 @@ type Service struct {
 func NewService(s *store.Store, e ExecutionService, secrets remote.Secrets) *Service {
 	return &Service{Store: s, Executor: e, Secrets: secrets, ModelFactory: NewModel, active: map[string]*activeRun{}}
 }
-func (s *Service) NewTask(goal, profile string, hosts, ops, resources []string) (domain.Task, error) {
+func (s *Service) NewTask(goal, profile string, hosts, ops, resources []string, localRoots ...string) (domain.Task, error) {
 	if strings.TrimSpace(goal) == "" || len(hosts) == 0 {
 		return domain.Task{}, errors.New("请选择服务器并填写运维目标")
 	}
-	t := domain.Task{RuntimeVersion: RuntimeVersion, ID: domain.ID(), Goal: goal, ProfileID: profile, Status: "ready", CreatedAt: time.Now(), Grant: domain.Grant{ID: domain.ID(), HostIDs: hosts, Operations: ops, Resources: resources, Identities: map[string]string{}, ExpiresAt: time.Now().Add(8 * time.Hour)}}
+	roots, err := localfiles.CanonicalRoots(localRoots)
+	if err != nil {
+		return domain.Task{}, err
+	}
+	t := domain.Task{RuntimeVersion: RuntimeVersion, ID: domain.ID(), Goal: goal, ProfileID: profile, Status: "ready", CreatedAt: time.Now(), Grant: domain.Grant{LocalRoots: roots, ID: domain.ID(), HostIDs: hosts, Operations: ops, Resources: resources, Identities: map[string]string{}, ExpiresAt: time.Now().Add(8 * time.Hour)}}
 	for _, id := range hosts {
 		h, err := s.Store.Host(id)
 		if err != nil {
@@ -193,8 +198,11 @@ func (s *Service) Close() {
 }
 
 type OperationInput struct {
+	LocalPath      string `json:"local_path,omitempty"`
+	SourceHash     string `json:"source_hash,omitempty"`
+	UploadMode     string `json:"upload_mode,omitempty"`
 	HostID         string `json:"host_id" jsonschema:"description=Explicit target host ID"`
-	Operation      string `json:"operation" jsonschema:"description=observe service_status logs file_read file_write service_restart package_install shell terminal_connect terminal_read or terminal_write; terminal resource is terminal_id; terminal_write content is exact bytes including newline"`
+	Operation      string `json:"operation" jsonschema:"description=observe service_status logs file_read file_write service_restart package_install shell terminal_connect terminal_read terminal_write upload_local or file_hash; upload_local requires local_path source_hash resource and upload_mode (new replace resume); terminal resource is terminal_id; terminal_write content is exact bytes including newline"`
 	Resource       string `json:"resource,omitempty"`
 	Command        string `json:"command,omitempty"`
 	Content        string `json:"content,omitempty"`

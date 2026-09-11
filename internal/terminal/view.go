@@ -20,8 +20,14 @@ import (
 
 const DefaultFontSize float32 = 12
 
+type terminalResize struct {
+	rows, cols int
+	apply      func(int, int)
+}
+
 type View struct {
-	OnFocus func()
+	resizeRequests chan terminalResize
+	OnFocus        func()
 	widget.BaseWidget
 	Core                         *Core
 	OnResize                     func(int, int)
@@ -45,7 +51,7 @@ type View struct {
 }
 
 func NewView(input io.Writer, output io.Reader, errorHandlers ...func(error)) *View {
-	v := &View{Core: NewCore(80, 24), fontSize: DefaultFontSize, cols: 80, rows: 24, keys: make(chan func(), 256), done: make(chan struct{}), selectionStart: -1, selectionEnd: -1}
+	v := &View{Core: NewCore(80, 24), fontSize: DefaultFontSize, cols: 80, rows: 24, keys: make(chan func(), 256), resizeRequests: make(chan terminalResize, 1), done: make(chan struct{}), selectionStart: -1, selectionEnd: -1}
 	if len(errorHandlers) > 0 {
 		v.OnError = errorHandlers[0]
 	}
@@ -55,6 +61,7 @@ func NewView(input io.Writer, output io.Reader, errorHandlers ...func(error)) *V
 		v.source = closer
 	}
 	v.measure()
+	go v.runResizes()
 	go func() {
 		_, err := io.Copy(input, v.Core)
 		v.Core.CloseInput()
@@ -157,7 +164,7 @@ func (v *View) Resize(size fyne.Size) {
 		v.rows = rows
 		v.Core.Resize(cols, rows)
 		if v.OnResize != nil {
-			go v.OnResize(rows, cols)
+			v.queueResize(terminalResize{rows: rows, cols: cols, apply: v.OnResize})
 		}
 	}
 }
@@ -467,4 +474,45 @@ func (v *View) SetBackground(img image.Image, opacity float64) {
 	v.backgroundImage = img
 	v.backgroundOpacity = math.Max(0, math.Min(.15, opacity))
 	v.Refresh()
+}
+
+// CursorPosition anchors the native input method without copying screen cells.
+func (v *View) CursorPosition() fyne.Position {
+	v.Core.mu.Lock()
+	defer v.Core.mu.Unlock()
+	pos := v.Core.vt.CursorPosition()
+	return fyne.NewPos(float32(pos.X)*v.cellSize.Width, float32(pos.Y)*v.cellSize.Height)
+}
+
+// Resize requests are ordered independently of terminal input. While a peer is
+// slow, retain only the latest geometry instead of spawning unbounded writers.
+func (v *View) queueResize(request terminalResize) {
+	select {
+	case <-v.done:
+		return
+	default:
+	}
+	select {
+	case <-v.resizeRequests:
+	default:
+	}
+	select {
+	case v.resizeRequests <- request:
+	case <-v.done:
+	}
+}
+func (v *View) runResizes() {
+	for {
+		select {
+		case <-v.done:
+			return
+		case request := <-v.resizeRequests:
+			select {
+			case <-v.done:
+				return
+			default:
+			}
+			request.apply(request.rows, request.cols)
+		}
+	}
 }

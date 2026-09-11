@@ -1,0 +1,7 @@
+=== RUN   TestNativeCompositionContract
+    ime_darwin_test.go:38: native text-input contract failure bits: 46
+    ime_darwin_test.go:44: composing Return leaked or normal Return lost: 2
+--- FAIL: TestNativeCompositionContract (0.00s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/nativeime	1.064s
+FAIL

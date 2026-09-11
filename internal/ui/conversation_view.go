@@ -105,6 +105,7 @@ func (v *conversationView) reset(id string) {
 	v.scroll.Offset = fyne.Position{}
 }
 func (v *conversationView) update(id string, messages []chatMessage) {
+	follow := v.id != id || len(v.blocks) == 0 || v.scroll.Offset.Y >= max(float32(0), v.scroll.Content.MinSize().Height-v.scroll.Size().Height)-24
 	if v.id != id {
 		v.reset(id)
 	}
@@ -124,7 +125,10 @@ func (v *conversationView) update(id string, messages []chatMessage) {
 			v.blocks[i].setText(m.text)
 		}
 	}
-	v.content.Refresh()
+	v.scroll.Refresh()
+	if follow {
+		v.scroll.ScrollToBottom()
+	}
 }
 func newChatBlock(m chatMessage) *chatBlock {
 	b := &chatBlock{kind: m.kind, body: widget.NewRichText()}
@@ -159,7 +163,10 @@ func (b *chatBlock) setText(s string) {
 
 type chatInput struct {
 	widget.Entry
-	Submit func()
+	Submit       func()
+	PasteFiles   func() ([]string, error)
+	OnFiles      func([]string)
+	OnPasteError func(error)
 }
 
 func newChatInput() *chatInput {
@@ -169,6 +176,22 @@ func newChatInput() *chatInput {
 	v.ExtendBaseWidget(v)
 	v.SetMinRowsVisible(2)
 	return v
+}
+func (v *chatInput) TypedShortcut(shortcut fyne.Shortcut) {
+	if _, ok := shortcut.(*fyne.ShortcutPaste); ok && !v.Disabled() && v.PasteFiles != nil && v.OnFiles != nil {
+		paths, err := v.PasteFiles()
+		if err != nil {
+			if v.OnPasteError != nil {
+				v.OnPasteError(err)
+			}
+			return
+		}
+		if len(paths) > 0 {
+			v.OnFiles(paths)
+			return
+		}
+	}
+	v.Entry.TypedShortcut(shortcut)
 }
 func (v *chatInput) TypedKey(e *fyne.KeyEvent) {
 	if e.Name == fyne.KeyReturn || e.Name == fyne.KeyEnter {

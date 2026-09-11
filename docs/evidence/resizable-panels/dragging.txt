@@ -1,0 +1,7 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-1422505636/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestWorkbenchPanelDragging
+--- PASS: TestWorkbenchPanelDragging (3.75s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	6.579s

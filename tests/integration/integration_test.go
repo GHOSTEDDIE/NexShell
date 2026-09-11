@@ -210,6 +210,14 @@ func TestLinuxLab(t *testing.T) {
 			t.Fatal(code, b.String(), e)
 		}
 	})
+	t.Run("local_package_upload", func(t *testing.T) { testLocalPackageUpload(t, ctx, s, m, h) })
+	t.Run("local_package_agent", func(t *testing.T) { exerciseLocalDeployment(t, ctx, s, m, h, secrets, false) })
+	t.Run("local_package_real_model", func(t *testing.T) {
+		if os.Getenv("NEXSHELL_REAL_MODEL") != "1" {
+			t.Skip("real model opt-in required")
+		}
+		exerciseLocalDeployment(t, ctx, s, m, h, secrets, true)
+	})
 	t.Run("cancel_unknown_not_replayed", func(t *testing.T) {
 		executor := &remote.Executor{Manager: m, Store: s}
 		short, cancel := context.WithTimeout(ctx, 150*time.Millisecond)

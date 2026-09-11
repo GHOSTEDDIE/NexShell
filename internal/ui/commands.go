@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
@@ -72,7 +71,7 @@ func (u *App) insertSnippet(template string) {
 		values[name] = entry
 		items = append(items, widget.NewFormItem(name, entry))
 	}
-	dialog.ShowForm("填写命令参数", "插入", "取消", items, func(ok bool) {
+	showMotionForm("填写命令参数", "插入", "取消", items, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -94,7 +93,7 @@ func (u *App) deleteHost() {
 		u.error(fmt.Errorf("请选择服务器"))
 		return
 	}
-	dialog.ShowConfirm("删除服务器配置", h.Name+" · "+h.Address, func(ok bool) {
+	showMotionConfirm("删除服务器配置", h.Name+" · "+h.Address, func(ok bool) {
 		if !ok {
 			return
 		}

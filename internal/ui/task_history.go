@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -115,27 +116,7 @@ func (u *App) updateTask() {
 	u.taskRequests <- selection
 }
 func (u *App) watchTasks() {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	var selected taskSelection
-	var history taskHistory
-	for {
-		select {
-		case <-u.ctx.Done():
-			return
-		case selected = <-u.taskRequests:
-			history.loaded = false // A previous delivery may have been superseded.
-		case <-ticker.C:
-		}
-		if selected.id == "" {
-			history = taskHistory{}
-			continue
-		}
-		update, changed, err := history.load(u.Store, selected.id)
-		if err != nil || !changed {
-			continue
-		}
-		selection := selected
+	watchTaskUpdates(u.ctx, u.Store, u.taskRequests, func(selection taskSelection, update taskUpdate) {
 		// At most one pending UI delivery; slow rendering cannot accumulate callbacks.
 		fyne.DoAndWait(func() {
 			if u.ctx.Err() != nil || u.taskID != selection.id || u.taskRevision != selection.revision {
@@ -164,5 +145,64 @@ func (u *App) watchTasks() {
 				u.taskText.SetText(update.text)
 			}
 		})
+	})
+}
+
+type liveTaskSource interface {
+	taskSource
+	SubscribeTask(string) (<-chan struct{}, func())
+}
+
+// Coalesce committed deltas at 30 frames per second without polling idle tasks.
+func watchTaskUpdates(ctx context.Context, source liveTaskSource, requests <-chan taskSelection, deliver func(taskSelection, taskUpdate)) {
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
+	defer timer.Stop()
+	var frame <-chan time.Time
+	var notifications <-chan struct{}
+	unsubscribe := func() {}
+	defer func() { unsubscribe() }()
+	var selected taskSelection
+	var history taskHistory
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case selection, ok := <-requests:
+			if !ok {
+				return
+			}
+			selected = selection
+			unsubscribe()
+			notifications = nil
+			timer.Stop()
+			frame = nil
+			if selected.id != "" {
+				notifications, unsubscribe = source.SubscribeTask(selected.id)
+			} else {
+				unsubscribe = func() {}
+			}
+			history.loaded = false
+		case _, ok := <-notifications:
+			if !ok {
+				return
+			}
+			if frame == nil {
+				timer.Reset(time.Second / 30)
+				frame = timer.C
+			}
+			continue
+		case <-frame:
+			frame = nil
+		}
+		if selected.id == "" {
+			history = taskHistory{}
+			continue
+		}
+		update, changed, err := history.load(source, selected.id)
+		if err != nil || !changed {
+			continue
+		}
+		deliver(selected, update)
 	}
 }

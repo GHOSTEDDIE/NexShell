@@ -1,0 +1,35 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-1285733391/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/authentication_and_shell
+=== RUN   TestLinuxLab/sftp_conflict_resume
+=== RUN   TestLinuxLab/changed_host_key
+=== RUN   TestLinuxLab/jump_host
+=== RUN   TestLinuxLab/local_package_upload
+=== RUN   TestLinuxLab/local_package_agent
+    local_upload_test.go:184: deployment real=false model=deterministic: local metadata, exact approval, SFTP upload and independent verification passed
+=== RUN   TestLinuxLab/local_package_real_model
+    integration_test.go:217: real model opt-in required
+=== RUN   TestLinuxLab/cancel_unknown_not_replayed
+=== RUN   TestLinuxLab/monitor_and_forwarding
+=== RUN   TestLinuxLab/zmodem_lrzsz
+=== RUN   TestLinuxLab/companion_existing_terminal
+=== RUN   TestLinuxLab/deep_terminal_delegation
+=== RUN   TestLinuxLab/eino_approval_execution_verification
+--- PASS: TestLinuxLab (8.58s)
+    --- PASS: TestLinuxLab/authentication_and_shell (2.33s)
+    --- PASS: TestLinuxLab/sftp_conflict_resume (0.15s)
+    --- PASS: TestLinuxLab/changed_host_key (0.03s)
+    --- PASS: TestLinuxLab/jump_host (0.13s)
+    --- PASS: TestLinuxLab/local_package_upload (1.42s)
+    --- PASS: TestLinuxLab/local_package_agent (0.33s)
+    --- SKIP: TestLinuxLab/local_package_real_model (0.00s)
+    --- PASS: TestLinuxLab/cancel_unknown_not_replayed (2.17s)
+    --- PASS: TestLinuxLab/monitor_and_forwarding (0.05s)
+    --- PASS: TestLinuxLab/zmodem_lrzsz (0.10s)
+    --- PASS: TestLinuxLab/companion_existing_terminal (0.05s)
+    --- PASS: TestLinuxLab/deep_terminal_delegation (0.41s)
+    --- PASS: TestLinuxLab/eino_approval_execution_verification (0.28s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/tests/integration	10.639s

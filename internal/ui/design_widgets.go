@@ -159,6 +159,7 @@ func (r *surfaceRenderer) Refresh() {
 
 type actionButton struct {
 	outlined bool
+	leading  bool
 	widget.DisableableWidget
 	Text                                           string
 	Icon                                           fyne.Resource
@@ -239,6 +240,9 @@ func (r *actionRenderer) Layout(s fyne.Size) {
 		}
 	}
 	x := (s.Width - w) / 2
+	if r.b.leading {
+		x = 12
+	}
 	if r.b.Icon != nil {
 		r.icon.Move(fyne.NewPos(x, (s.Height-18)/2))
 		r.icon.Resize(fyne.NewSize(18, 18))

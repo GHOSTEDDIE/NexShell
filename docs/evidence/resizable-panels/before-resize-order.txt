@@ -1,0 +1,8 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-654351266/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+--- FAIL: TestLatestResizeWinsAfterSlowRemote (0.13s)
+    resize_order_test.go:57: slow old resize overwrote latest geometry: got 18 rows, want 27
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/terminal	1.224s
+FAIL

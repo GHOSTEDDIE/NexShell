@@ -24,6 +24,7 @@ import (
 )
 
 type workspace struct {
+	bottomHeight    float32
 	monitor         fyne.CanvasObject
 	listedDirectory string
 	activeSession   atomic.Pointer[remote.TerminalSession]
@@ -96,9 +97,9 @@ func (w *workspace) layoutWorkspace() {
 			find := widget.NewEntry()
 			find.SetPlaceHolder("搜索终端输出")
 			find.OnSubmitted = func(q string) { count := w.terminal.Search(q); u.status.SetText(fmt.Sprintf("找到 %d 行", count)) }
-			dialog.ShowCustom("搜索终端", "关闭", sized(find, 440, 36), u.Window)
+			showMotionDialog("搜索终端", "关闭", sized(find, 440, 36), u.Window)
 		}
-		menu := fyne.NewMenu("", fyne.NewMenuItem("搜索终端输出", search), fyne.NewMenuItem("快捷命令", u.snippetsDialog), fyne.NewMenuItem("命令输入栏", func() { dialog.ShowCustom("执行命令", "关闭", sized(w.commandBar(), 650, 40), u.Window) }), fyne.NewMenuItem("终端字号", func() { u.settingsDialog("appearance") }), fyne.NewMenuItem("关闭会话", func() { u.closeWorkspace(w.tab) }))
+		menu := fyne.NewMenu("", fyne.NewMenuItem("搜索终端输出", search), fyne.NewMenuItem("快捷命令", u.snippetsDialog), fyne.NewMenuItem("命令输入栏", func() { showMotionDialog("执行命令", "关闭", sized(w.commandBar(), 650, 40), u.Window) }), fyne.NewMenuItem("终端字号", func() { u.settingsDialog("appearance") }), fyne.NewMenuItem("关闭会话", func() { u.closeWorkspace(w.tab) }))
 		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
 	})
 	badge := panel(padded(textUI("已连接", sizeMeta, theme.ColorNameSuccess, false), 4), colorSuccessBG, false, 4)
@@ -108,20 +109,26 @@ func (w *workspace) layoutWorkspace() {
 	w.fileArea = w.filePane()
 	w.fileTab = container.NewTabItem("文件", w.fileArea)
 	w.bottomTabs = newTabView(false, w.fileTab, container.NewTabItem("传输", container.NewVScroll(w.transfers)), container.NewTabItem("网络诊断", w.networkPane()))
-	w.tab = container.NewTabItemWithIcon(h.Name, fyne.NewStaticResource("connected.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><circle cx="9" cy="9" r="3" fill="#51ac83"/></svg>`)), container.New(terminalFileLayout{}, terminalPane, w.bottomTabs))
+	w.bottomHeight = savedPanelSize(u.UI.Preferences(), "layout.bottomHeight", 250)
+	w.tab = container.NewTabItemWithIcon(h.Name, fyne.NewStaticResource("connected.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><circle cx="9" cy="9" r="3" fill="#51ac83"/></svg>`)), container.New(terminalFileLayout{w: w}, terminalPane, w.bottomTabs, newResizeDivider(true, func(delta float32) {
+		content := w.tab.Content.(*fyne.Container)
+		w.bottomHeight = boundedPanelSize(w.bottomTabs.Size().Height-delta, minimumToolsHeight, content.Size().Height-minimumTerminalHeight-dividerSize)
+		content.Refresh()
+	}, func() { u.UI.Preferences().SetFloat("layout.bottomHeight", float64(w.bottomHeight)) })))
 }
 
-type terminalFileLayout struct{}
+type terminalFileLayout struct{ w *workspace }
 
 func (terminalFileLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(480, 500) }
-func (terminalFileLayout) Layout(o []fyne.CanvasObject, s fyne.Size) {
-	bottom := float32(250)
-	if s.Height < 750 {
-		bottom = 220
-	}
+func (l terminalFileLayout) Layout(o []fyne.CanvasObject, s fyne.Size) {
+	available := max(0, s.Height-dividerSize)
+	bottom := boundedPanelSize(l.w.bottomHeight, minimumToolsHeight, available-minimumTerminalHeight)
+	top := max(0, available-bottom)
 	o[0].Move(fyne.NewPos(0, 0))
-	o[0].Resize(fyne.NewSize(s.Width, max(180, s.Height-bottom)))
-	o[1].Move(fyne.NewPos(0, s.Height-bottom))
+	o[0].Resize(fyne.NewSize(s.Width, top))
+	o[2].Move(fyne.NewPos(0, top))
+	o[2].Resize(fyne.NewSize(s.Width, dividerSize))
+	o[1].Move(fyne.NewPos(0, top+dividerSize))
 	o[1].Resize(fyne.NewSize(s.Width, bottom))
 }
 
@@ -269,7 +276,7 @@ func (w *workspace) openSelected() {
 			editor.SetText(string(b))
 			editor.SetMinRowsVisible(20)
 			editor.TextStyle = fyne.TextStyle{Monospace: true}
-			d := dialog.NewCustomConfirm(p, "保存", "关闭", editor, func(ok bool) {
+			d := newMotionConfirm(p, "保存", "关闭", editor, func(ok bool) {
 				if !ok {
 					return
 				}
@@ -361,7 +368,7 @@ func (w *workspace) download() {
 func (w *workspace) askName(title, initial string, action func(string) error) {
 	e := widget.NewEntry()
 	e.SetText(initial)
-	dialog.ShowForm(title, "确认", "取消", []*widget.FormItem{widget.NewFormItem("名称", e)}, func(ok bool) {
+	showMotionForm(title, "确认", "取消", []*widget.FormItem{widget.NewFormItem("名称", e)}, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -411,7 +418,7 @@ func (w *workspace) permissions() {
 	}
 	entry := widget.NewEntry()
 	entry.SetText("0644")
-	dialog.ShowForm("修改权限", "保存", "取消", []*widget.FormItem{widget.NewFormItem("八进制权限", entry)}, func(ok bool) {
+	showMotionForm("修改权限", "保存", "取消", []*widget.FormItem{widget.NewFormItem("八进制权限", entry)}, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -435,7 +442,7 @@ func (w *workspace) remove() {
 	if !ok {
 		return
 	}
-	dialog.ShowConfirm("删除", "确认删除 "+p+"？", func(ok bool) {
+	showMotionConfirm("删除", "确认删除 "+p+"？", func(ok bool) {
 		if !ok {
 			return
 		}

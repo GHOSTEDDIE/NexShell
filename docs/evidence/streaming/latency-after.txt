@@ -1,0 +1,12 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-2107863221/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestStreamingDeliveryLatency
+    streaming_test.go:44: persisted delta to view update: 36.271625ms
+--- PASS: TestStreamingDeliveryLatency (0.06s)
+=== RUN   TestTaskHistoryIncrementalAndStateChanges
+--- PASS: TestTaskHistoryIncrementalAndStateChanges (0.02s)
+=== RUN   TestTaskSelectionCoalescesWithoutDatabaseWork
+--- PASS: TestTaskSelectionCoalescesWithoutDatabaseWork (0.00s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	2.750s

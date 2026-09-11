@@ -1,0 +1,8 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+--- FAIL: TestStreamingDeliveryLatency (0.21s)
+    streaming_test.go:46: stream text was not delivered within 200 ms
+FAIL
+exit status 1
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.913s
+FAIL

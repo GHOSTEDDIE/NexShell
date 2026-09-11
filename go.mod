@@ -2,6 +2,8 @@ module github.com/GHOSTEDDIE/nexshell
 
 replace github.com/charmbracelet/x/vt => ./third_party/vt
 
+replace github.com/go-gl/glfw/v3.4/glfw => ./third_party/glfw
+
 go 1.25.0
 
 require (

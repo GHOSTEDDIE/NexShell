@@ -30,6 +30,13 @@ func (u *App) selectWorkspace(item *container.TabItem) {
 			continue
 		}
 		u.selected = ws.host.ID
+		if ws.bottomTabs != nil {
+			height := savedPanelSize(u.UI.Preferences(), "layout.bottomHeight", 250)
+			if ws.bottomHeight != height {
+				ws.bottomHeight = height
+				ws.tab.Content.Refresh()
+			}
+		}
 		contextName = "当前连接 · " + ws.host.Name
 		if len(ws.terminalIDs) > 0 {
 			u.terminalsDesktop.Select(ws.terminalIDs[0])

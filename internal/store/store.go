@@ -15,8 +15,9 @@ import (
 )
 
 type Store struct {
-	db  *sql.DB
-	Dir string
+	changes taskChanges
+	db      *sql.DB
+	Dir     string
 }
 
 func Open(dir string) (*Store, error) {
@@ -50,7 +51,7 @@ PRAGMA user_version=1;`)
 	return s, nil
 }
 
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error { s.changes.close(); return s.db.Close() }
 func (s *Store) Put(kind, id string, v any) error {
 	if id == "" {
 		return errors.New("empty record id")
@@ -60,6 +61,9 @@ func (s *Store) Put(kind, id string, v any) error {
 		return err
 	}
 	_, err = s.db.Exec(`INSERT INTO documents(kind,id,payload) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET payload=excluded.payload`, kind, id, b)
+	if err == nil && kind == "tasks" {
+		s.changes.notify(id)
+	}
 	return err
 }
 func (s *Store) Load(kind, id string, v any) error {
@@ -106,6 +110,9 @@ func (s *Store) Event(task, kind, text string) (domain.Event, error) {
 		return e, err
 	}
 	e.Sequence, err = r.LastInsertId()
+	if err == nil {
+		s.changes.notify(task)
+	}
 	return e, err
 }
 func (s *Store) Events(task string, after int64) ([]domain.Event, error) {

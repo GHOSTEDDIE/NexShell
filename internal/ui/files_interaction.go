@@ -20,6 +20,9 @@ func (u *App) filesDropped(pos fyne.Position, uris []fyne.URI) {
 	if u.closing {
 		return
 	}
+	if u.dropAttachments(pos, uris) {
+		return
+	}
 	for _, w := range u.workspaces {
 		if w.ctx.Err() != nil || u.tabs.Selected() != w.tab || w.bottomTabs.Selected() != w.fileTab {
 			continue
@@ -82,7 +85,7 @@ func (w *workspace) queueUploads(locals []string, directory string) {
 					return
 				}
 				var d dialog.Dialog
-				d = dialog.NewCustom("目标文件已存在", "取消", container.NewVBox(widget.NewLabel(dest), container.NewHBox(widget.NewButton("校验并续传", func() { d.Hide(); w.transfer(local, dest, true, true) }), widget.NewButton("覆盖上传", func() { d.Hide(); w.transfer(local, dest, true, false) }))), w.u.Window)
+				d = newMotionDialog("目标文件已存在", "取消", container.NewVBox(widget.NewLabel(dest), container.NewHBox(widget.NewButton("校验并续传", func() { d.Hide(); w.transfer(local, dest, true, true) }), widget.NewButton("覆盖上传", func() { d.Hide(); w.transfer(local, dest, true, false) }))), w.u.Window)
 				d.Show()
 			})
 			return nil

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/localfiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
@@ -21,58 +22,8 @@ import (
 func (s *Service) buildTools(ctx context.Context, t domain.Task) (adk.ToolsConfig, error) {
 	id := t.ID
 	op, err := utils.InferTool("operate", "在明确指定的服务器上观察或执行操作。shell 总是要求本次请求授权；文件修改需要之前读取的哈希。", func(ctx context.Context, in *OperationInput) (string, error) {
-		r := domain.Request{TaskID: id, CallID: executionCallID(ctx), RunID: executionRunID(ctx), AgentName: executionAgentName(ctx), HostID: in.HostID, Operation: in.Operation, Resource: in.Resource, Command: in.Command, Content: in.Content, ExpectedHash: in.ExpectedHash, TimeoutSeconds: in.TimeoutSeconds}
-		h, e := s.Store.Host(r.HostID)
-		if errors.Is(e, sql.ErrNoRows) {
-			return "", correctable("服务器编号无效，请先用 workspace_context 查看授权范围并使用返回的 host_id。")
-		}
-		if e != nil {
-			return "", e
-		}
-		if remote.Mutates(r.Operation) {
-			if e := s.checkKnownResults(id); e != nil {
-				return "", e
-			}
-		}
-		allowed, e := Evaluate(t, h, r, time.Now())
-		if e != nil {
-			return "", correctable(e.Error())
-		}
-		if !allowed {
-			var approved Approval
-			e = s.Store.Load("approvals", domain.Digest(r), &approved)
-			if e == nil && approved.Decided && approved.GrantID == t.Grant.ID && !approved.Approved {
-				return "用户拒绝执行此操作。", nil
-			}
-			if e != nil || !ApprovedFor(approved, t, r) {
-				return "", compose.Interrupt(ctx, &Approval{Request: r, Digest: domain.Digest(r), GrantID: t.Grant.ID, Reason: "操作超出当前自动执行范围，需要确认具体请求"})
-			}
-		}
-		if e = s.event(id, "execution_start", fmt.Sprintf("%s %s %s", r.HostID, r.Operation, r.Resource)); e != nil {
-			return "", e
-		}
-
-		guarded := remote.WithAuthority(ctx, r.HostID, t.Grant.Identities[r.HostID], func() error {
-			h, e := s.Store.Host(r.HostID)
-			if e != nil {
-				return e
-			}
-			_, e = Evaluate(t, h, r, time.Now())
-			return e
-		})
-		result, e := s.Executor.Execute(guarded, r)
-		if e != nil {
-			return "", e
-		}
-		if e = s.event(id, "execution_result", fmt.Sprintf("%s %s exit=%d\n%s", result.ID, result.Status, result.ExitCode, result.Output)); e != nil {
-			return "", e
-		}
-		// Persisted results are not a replay instruction. Unknown outcomes halt the turn.
-		if result.Status == "unknown" || result.Status == "running" {
-			return "", errors.New("远端结果未确认，停止自动执行；请人工核实执行记录")
-		}
-		b, _ := json.Marshal(result)
-		return string(b), nil
+		r := domain.Request{TaskID: id, CallID: executionCallID(ctx), RunID: executionRunID(ctx), AgentName: executionAgentName(ctx), HostID: in.HostID, Operation: in.Operation, Resource: in.Resource, Command: in.Command, Content: in.Content, ExpectedHash: in.ExpectedHash, TimeoutSeconds: in.TimeoutSeconds, LocalPath: in.LocalPath, SourceHash: in.SourceHash, UploadMode: in.UploadMode}
+		return s.executeTool(ctx, t, r)
 	}, utils.WithUnmarshalArguments(decodeToolArguments[OperationInput]))
 	if err != nil {
 		return adk.ToolsConfig{}, err
@@ -114,7 +65,16 @@ func (s *Service) buildTools(ctx context.Context, t domain.Task) (adk.ToolsConfi
 		}
 		return "", correctable("证据不属于本任务")
 	}, utils.WithUnmarshalArguments(decodeToolArguments[EvidenceInput]))
-	tools := []tool.BaseTool{op, verify, evidence}
+	local, err := utils.InferTool("local_files", "查询本机绝对路径：stat 获取信息和 SHA-256；list 列目录；read 分段读取 UTF-8 文本。继续读取使用 next_offset。部署包只用 stat，不读取二进制内容。未授权目录请求确认。", func(ctx context.Context, in *LocalFilesInput) (string, error) {
+		if in.Operation != "stat" && in.Operation != "list" && in.Operation != "read" {
+			return "", correctable("本机文件操作必须为 stat、list 或 read")
+		}
+		return s.executeTool(ctx, t, domain.Request{TaskID: id, CallID: executionCallID(ctx), RunID: executionRunID(ctx), AgentName: executionAgentName(ctx), Operation: "local_" + in.Operation, LocalPath: in.Path, ReadOffset: in.Offset})
+	}, utils.WithUnmarshalArguments(decodeToolArguments[LocalFilesInput]))
+	if err != nil {
+		return adk.ToolsConfig{}, err
+	}
+	tools := []tool.BaseTool{op, verify, evidence, local}
 	{
 		contextTool, err := utils.InferTool("workspace_context", "列出本次对话授权的服务器及仍打开的终端。active 表示当前标签，不是授权。操作必须使用明确编号。", func(ctx context.Context, _ *struct{}) (string, error) {
 			type hostInfo struct {
@@ -136,9 +96,10 @@ func (s *Service) buildTools(ctx context.Context, t domain.Task) (adk.ToolsConfi
 				terminals = s.Desktop.List(t.Grant.HostIDs)
 			}
 			b, e := json.Marshal(struct {
-				Hosts     []hostInfo            `json:"hosts"`
-				Terminals []remote.TerminalInfo `json:"terminals"`
-			}{hosts, terminals})
+				LocalRoots []string              `json:"local_roots"`
+				Hosts      []hostInfo            `json:"hosts"`
+				Terminals  []remote.TerminalInfo `json:"terminals"`
+			}{t.Grant.LocalRoots, hosts, terminals})
 			return string(b), e
 		}, utils.WithUnmarshalArguments(unmarshalNoArguments))
 		if err != nil {
@@ -174,4 +135,90 @@ func (s *Service) buildTools(ctx context.Context, t domain.Task) (adk.ToolsConfi
 	}
 
 	return adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{Tools: tools, ExecuteSequentially: true, UnknownToolsHandler: handleUnknown}}, nil
+}
+
+func (s *Service) executeTool(ctx context.Context, t domain.Task, r domain.Request) (string, error) {
+	id := t.ID
+	var allowed bool
+	var err error
+	if r.LocalPath != "" {
+		r.LocalPath, err = localfiles.CanonicalPath(r.LocalPath)
+		if err != nil {
+			return "", correctable(err.Error())
+		}
+	}
+	local := localfiles.IsOperation(r.Operation)
+	if local {
+		allowed, err = EvaluateLocal(t, r, time.Now())
+		if err == nil && !allowed {
+			allowed, err = s.attachedFile(t, r.LocalPath)
+		}
+	} else {
+		h, e := s.Store.Host(r.HostID)
+		if errors.Is(e, sql.ErrNoRows) {
+			return "", correctable("服务器编号无效，请用 workspace_context 查看授权主机")
+		}
+		if e != nil {
+			return "", e
+		}
+		if remote.Mutates(r.Operation) {
+			if e := s.checkKnownResults(id); e != nil {
+				return "", e
+			}
+		}
+		allowed, err = Evaluate(t, h, r, time.Now())
+	}
+	if err != nil {
+		return "", correctable(err.Error())
+	}
+	var e error
+	if !allowed {
+		var approved Approval
+		e = s.Store.Load("approvals", domain.Digest(r), &approved)
+		if e != nil && !errors.Is(e, sql.ErrNoRows) {
+			return "", e
+		}
+		if e == nil && approved.Decided && approved.GrantID == t.Grant.ID && !approved.Approved {
+			return "用户拒绝执行此操作。", nil
+		}
+		if e != nil || !ApprovedFor(approved, t, r) {
+			return "", compose.Interrupt(ctx, &Approval{Request: r, Digest: domain.Digest(r), GrantID: t.Grant.ID, Reason: "操作超出当前自动执行范围，需要确认具体请求"})
+		}
+	}
+	if e = s.event(id, "execution_start", fmt.Sprintf("%s %s %s %s", r.HostID, r.Operation, r.Resource, r.LocalPath)); e != nil {
+		return "", e
+	}
+
+	guarded := remote.WithAuthority(localfiles.WithRoots(ctx, t.Grant.LocalRoots), r.HostID, t.Grant.Identities[r.HostID], func() error {
+		if local {
+			_, err := EvaluateLocal(t, r, time.Now())
+			return err
+		}
+		h, err := s.Store.Host(r.HostID)
+		if err != nil {
+			return err
+		}
+		_, err = Evaluate(t, h, r, time.Now())
+		return err
+	})
+	result, e := s.Executor.Execute(guarded, r)
+	if e != nil {
+		return "", e
+	}
+	if e = s.event(id, "execution_result", fmt.Sprintf("%s %s exit=%d\n%s", result.ID, result.Status, result.ExitCode, result.Output)); e != nil {
+		return "", e
+	}
+	// Persisted results are not a replay instruction. Unknown outcomes halt the turn.
+	if result.Status == "unknown" || result.Status == "running" {
+		return "", errors.New("远端结果未确认，停止自动执行；请人工核实执行记录")
+	}
+	b, _ := json.Marshal(result)
+	return string(b), nil
+}
+
+// LocalFilesInput exposes only read operations, independently of remote host identity.
+type LocalFilesInput struct {
+	Operation string `json:"operation" jsonschema:"enum=stat,enum=list,enum=read"`
+	Path      string `json:"path" jsonschema:"description=Absolute local file or directory path"`
+	Offset    int64  `json:"offset,omitempty" jsonschema:"description=Byte offset for text read; use previous next_offset, default zero"`
 }

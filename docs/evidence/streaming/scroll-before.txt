@@ -1,0 +1,8 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+=== RUN   TestConversationFollowsStreamWithoutStealingScroll
+    streaming_test.go:81: new streamed text remains outside the visible viewport
+--- FAIL: TestConversationFollowsStreamWithoutStealingScroll (0.05s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.941s
+FAIL

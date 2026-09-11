@@ -1,0 +1,9 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+goos: darwin
+goarch: arm64
+pkg: github.com/GHOSTEDDIE/nexshell/internal/ui
+cpu: Apple M1 Pro
+BenchmarkAssistantStreamingLongReply-10    	      20	   3158433 ns/op	 1163894 B/op	   23479 allocs/op
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	1.757s

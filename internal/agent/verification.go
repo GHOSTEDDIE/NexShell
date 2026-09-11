@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/localfiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"slices"
 	"strings"
@@ -21,6 +22,9 @@ func (s *Service) checkKnownResults(id string) error {
 		return err
 	}
 	for _, r := range results {
+		if localfiles.IsOperation(r.Request.Operation) {
+			continue
+		}
 		if r.Status == "unknown" || r.Status == "running" {
 			return errors.New("存在结果未知的操作，请先核实；禁止重放变更")
 		}
@@ -56,7 +60,15 @@ func (s *Service) verifyResult(t domain.Task, ctx context.Context, results []dom
 }
 func (s *Service) hasOperations(id string) bool {
 	results, err := s.Store.Results(id)
-	return err != nil || len(results) > 0
+	if err != nil {
+		return true
+	}
+	for _, r := range results {
+		if !localfiles.IsOperation(r.Request.Operation) {
+			return true
+		}
+	}
+	return false
 }
 func (s *Service) allVerified(id string) bool {
 	results, err := s.Store.Results(id)
@@ -65,10 +77,16 @@ func (s *Service) allVerified(id string) bool {
 	}
 	last := map[string]domain.Result{}
 	for _, r := range results {
+		if localfiles.IsOperation(r.Request.Operation) {
+			continue
+		}
 		if r.Status == "unknown" || r.Status == "running" {
 			return false
 		}
 		last[r.Request.HostID] = r
+	}
+	if len(last) == 0 {
+		return false
 	}
 	for host, r := range last {
 		var v Verification

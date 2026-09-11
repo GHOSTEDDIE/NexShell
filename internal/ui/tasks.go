@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/agent"
@@ -32,19 +31,35 @@ func (u *App) agentPanel() fyne.CanvasObject {
 	})
 	u.taskList.PlaceHolder = "选择任务"
 	input := newChatInput()
-	input.SetPlaceHolder("继续提问，或描述你想完成的操作…")
+	input.SetPlaceHolder("输入消息、本机文件路径，或粘贴文件…")
+	u.composer = u.newAttachmentComposer(input)
+	composer := u.composer
 	send := func() {
-		id, text := u.taskID, input.Text
-		if strings.TrimSpace(text) == "" {
+		id, text, files := u.taskID, input.Text, composer.paths()
+		version := composer.revision
+		if strings.TrimSpace(text) == "" && len(files) == 0 {
 			return
 		}
 		if id == "" {
-			u.newConversationDialog(text, func() { input.SetText("") })
+			u.newConversationWithFiles(text, files, func() {
+				if composer.revision == version {
+					composer.clear()
+				}
+			})
 			return
 		}
 		text = u.conversationInput(id, text)
-		input.SetText("")
-		u.work("发送指令", func() error { return u.Agent.Submit(id, text) })
+		u.work("发送指令", func() error {
+			if err := u.Agent.SubmitFiles(id, text, files); err != nil {
+				return err
+			}
+			fyne.Do(func() {
+				if composer.revision == version {
+					composer.clear()
+				}
+			})
+			return nil
+		})
 	}
 	input.Submit = send
 	u.modelSelect = widget.NewSelect(nil, nil)
@@ -69,7 +84,7 @@ func (u *App) agentPanel() fyne.CanvasObject {
 	}
 	var menuButton *actionButton
 	menuButton = action("", designIcon("more"), func() {
-		history := func() { dialog.ShowCustom("历史对话", "关闭", sized(u.taskList, 480, 36), u.Window) }
+		history := func() { showMotionDialog("历史对话", "关闭", sized(u.taskList, 480, 36), u.Window) }
 		menu := fyne.NewMenu("", fyne.NewMenuItem("新对话", func() { u.newConversationDialog("") }), fyne.NewMenuItem("历史对话", history), fyne.NewMenuItem("运维任务", u.newTaskDialog), fyne.NewMenuItem("待确认操作", u.approvalDialog), fyne.NewMenuItem("恢复任务", u.resumeTask), fyne.NewMenuItem("管理记忆", u.memoryDialog))
 		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(menuButton).Add(fyne.NewPos(0, 30)))
 	})
@@ -82,8 +97,9 @@ func (u *App) agentPanel() fyne.CanvasObject {
 	u.stopAction.Hide()
 	u.approvalAction = action("待确认操作", nil, u.approvalDialog)
 	u.approvalAction.Hide()
-	tools := container.NewBorder(nil, nil, nil, container.NewHBox(action("", designIcon("settings"), u.modelDialog), sendButton), u.modelSelect)
-	compose := panel(padded(container.NewVBox(container.NewThemeOverride(input, componentTheme{body: true, clearInput: true}), tools), 10), theme.ColorNameBackground, true, 7)
+	tools := container.NewBorder(nil, nil, nil, container.NewHBox(action("添加文件", theme.DocumentIcon(), u.chooseAttachment), action("", designIcon("settings"), u.modelDialog), sendButton), u.modelSelect)
+	compose := panel(padded(container.NewVBox(composer.rows, container.NewThemeOverride(input, componentTheme{body: true, clearInput: true}), tools), 10), theme.ColorNameBackground, true, 7)
+	composer.area = compose
 	bottom := inset(container.NewVBox(container.NewHBox(u.taskStatus, u.stopAction, u.approvalAction), compose, metaText("Enter 发送 · Shift + Enter 换行")), 4, 16, 12, 16)
 	return edge(edge(header, nil, nil, nil, context), bottom, nil, nil, u.conversationView.scroll)
 }
@@ -135,6 +151,9 @@ func (u *App) newTaskDialog() {
 	resources := widget.NewMultiLineEntry()
 	resources.SetPlaceHolder("每行一个允许操作的文件绝对路径、服务名或软件包名")
 	resources.SetMinRowsVisible(3)
+	roots := widget.NewMultiLineEntry()
+	roots.SetPlaceHolder("可选，每行一个本机目录的绝对路径")
+	roots.SetMinRowsVisible(2)
 	profiles, _ := store.All[domain.ModelProfile](u.Store, "models")
 	pnames := []string{}
 	pids := map[string]string{}
@@ -147,7 +166,7 @@ func (u *App) newTaskDialog() {
 	if len(pnames) > 0 {
 		model.SetSelected(pnames[0])
 	}
-	d := dialog.NewForm("创建任务并授权", "授权并开始", "取消", []*widget.FormItem{widget.NewFormItem("目标服务器", hosts), widget.NewFormItem("任务目标", goal), widget.NewFormItem("模型", model), widget.NewFormItem("自动执行范围", ops), widget.NewFormItem("允许操作的资源", resources)}, func(ok bool) {
+	d := newMotionForm("创建任务并授权", "授权并开始", "取消", []*widget.FormItem{widget.NewFormItem("目标服务器", hosts), widget.NewFormItem("任务目标", goal), widget.NewFormItem("模型", model), widget.NewFormItem("自动执行范围", ops), widget.NewFormItem("允许操作的资源", resources), widget.NewFormItem("可读取的本机目录", roots)}, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -160,9 +179,9 @@ func (u *App) newTaskDialog() {
 		for _, label := range ops.Selected {
 			allowed = append(allowed, mapping[label])
 		}
-		g, p, r := goal.Text, pids[model.Selected], splitLines(resources.Text)
+		g, p, r, local := goal.Text, pids[model.Selected], splitLines(resources.Text), splitLines(roots.Text)
 		u.work("启动运维任务", func() error {
-			t, e := u.Agent.NewTask(g, p, selected, allowed, r)
+			t, e := u.Agent.NewTask(g, p, selected, allowed, r, local...)
 			if e != nil {
 				return e
 			}
@@ -215,14 +234,27 @@ func (u *App) approvalDialog() {
 		approval := a
 		h, _ := u.Store.Host(a.Request.HostID)
 		body := fmt.Sprintf("服务器：%s (%s@%s)\n操作：%s\n资源：%s\n\n命令：\n%s\n\n拟写入内容：\n%s", h.Name, h.User, h.Address, a.Request.Operation, a.Request.Resource, a.Request.Command, a.Request.Content)
+		if a.Request.HostID == "" {
+			body = fmt.Sprintf("本机操作：%s", a.Request.Operation)
+		}
+		if a.Request.LocalPath != "" {
+			body += "\n本机路径：" + a.Request.LocalPath
+		}
+		if a.Request.Operation == "local_read" {
+			body += fmt.Sprintf("\n读取起点：%d 字节", a.Request.ReadOffset)
+		}
+		if a.Request.Operation == "upload_local" {
+			mode := map[string]string{"": "仅新建", "new": "仅新建", "replace": "覆盖", "resume": "续传"}[a.Request.UploadMode]
+			body += "\n上传方式：" + mode + "\n文件 SHA-256：" + a.Request.SourceHash
+		}
 		body = "发起助手：" + agentLabel(a.Request.AgentName) + "\n子运行：" + a.Request.RunID + "\n" + body
 		preview := newReadOnly()
 		preview.SetText(body)
 		preview.SetMinRowsVisible(16)
-		d := dialog.NewCustomConfirm("确认本次操作", "允许本次", "拒绝", preview, func(ok bool) { u.work("处理确认", func() error { return u.Agent.Decide(id, approval.Digest, ok) }) }, u.Window)
+		d := newMotionConfirm("确认本次操作", "允许本次", "拒绝", preview, func(ok bool) { u.work("处理确认", func() error { return u.Agent.Decide(id, approval.Digest, ok) }) }, u.Window)
 		d.Resize(fyne.NewSize(760, 600))
 		d.Show()
 		return
 	}
-	dialog.ShowInformation("待确认操作", "当前没有待确认操作。", u.Window)
+	showMotionInformation("待确认操作", "当前没有待确认操作。", u.Window)
 }

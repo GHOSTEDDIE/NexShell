@@ -1,0 +1,7 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+--- FAIL: TestSettingsNavigationAligned (0.07s)
+    settings_alignment_test.go:56: navigation columns misaligned: icons 30.0/36.5 text 55.0/61.5
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.824s
+FAIL

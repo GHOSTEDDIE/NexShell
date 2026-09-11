@@ -24,6 +24,8 @@ import (
 )
 
 type App struct {
+	composer                       *attachmentComposer
+	leftWidth, rightWidth          float32
 	terminalBackground             image.Image
 	groupCounts                    map[string]int
 	preferredModel                 string
@@ -35,7 +37,7 @@ type App struct {
 	assistantContext, sessionCount *textView
 	modelSelect                    *widget.Select
 	conversationView               *conversationView
-	settingsPopup                  *widget.PopUp
+	settingsPopup                  *motionPopup
 	homeTab                        *container.TabItem
 	serverStatus                   *fyne.Container
 	connecting                     map[string]bool
@@ -89,6 +91,7 @@ func New(app fyne.App, s *store.Store, m *remote.Manager, e *remote.Executor, a 
 	u.tabs.OnClosed = u.closeWorkspace
 	u.tabs.CloseIntercept = u.closeWorkspace
 	u.Window.SetContent(u.desktop(u.serverStatus))
+	u.watchInputMethod()
 	u.UI.Settings().AddListener(func(fyne.Settings) {
 		if !u.closing {
 			u.refreshAppearanceStatus()
@@ -129,7 +132,7 @@ func New(app fyne.App, s *store.Store, m *remote.Manager, e *remote.Executor, a 
 func (u *App) Show() { u.Window.ShowAndRun() }
 func (u *App) error(err error) {
 	if err != nil {
-		dialog.ShowError(err, u.Window)
+		showMotionError(err, u.Window)
 	}
 }
 func (u *App) work(label string, fn func() error) {
@@ -223,7 +226,7 @@ func (u *App) connect(h domain.Host) {
 			if e != nil {
 				var key *remote.HostKeyError
 				if errors.As(e, &key) && !key.Changed {
-					dialog.ShowConfirm("核对服务器身份", key.Address+"\n"+key.Fingerprint+"\n确认与服务器管理员提供的指纹一致后连接。", func(ok bool) {
+					showMotionConfirm("核对服务器身份", key.Address+"\n"+key.Fingerprint+"\n确认与服务器管理员提供的指纹一致后连接。", func(ok bool) {
 						if ok {
 							if err := u.Manager.Trust(key); err != nil {
 								u.error(err)
@@ -273,7 +276,7 @@ func (u *App) editHost(existing *domain.Host) {
 	jump := widget.NewSelect(jumpNames, nil)
 	jump.SetSelected(selectedJump)
 	items := []*widget.FormItem{widget.NewFormItem("名称", name), widget.NewFormItem("地址", address), widget.NewFormItem("端口", port), widget.NewFormItem("用户名", user), widget.NewFormItem("分组", group), widget.NewFormItem("标签", tags), widget.NewFormItem("认证方式", auth), widget.NewFormItem("密码 / 私钥口令", secret), widget.NewFormItem("私钥文件", key), widget.NewFormItem("跳板机", jump), widget.NewFormItem("SOCKS5 代理", proxy)}
-	d := dialog.NewForm("服务器设置", "保存", "取消", items, func(ok bool) {
+	d := newMotionForm("服务器设置", "保存", "取消", items, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -388,7 +391,7 @@ func (u *App) prompt(ctx context.Context, user, instruction string, questions []
 			}
 			items = append(items, widget.NewFormItem(q, fields[i]))
 		}
-		dialog.ShowForm("身份验证 · "+user, "确认", "取消", items, func(ok bool) {
+		showMotionForm("身份验证 · "+user, "确认", "取消", items, func(ok bool) {
 			if !ok {
 				result <- answer{e: errors.New("身份验证已取消")}
 				return
@@ -430,7 +433,7 @@ func (u *App) tunnelDialog() {
 	bind.SetText("127.0.0.1:8080")
 	dest := widget.NewEntry()
 	dest.SetText("127.0.0.1:80")
-	dialog.ShowForm("端口转发 · "+h.Name, "开启", "取消", []*widget.FormItem{widget.NewFormItem("类型", kind), widget.NewFormItem("监听地址", bind), widget.NewFormItem("目标地址", dest)}, func(ok bool) {
+	showMotionForm("端口转发 · "+h.Name, "开启", "取消", []*widget.FormItem{widget.NewFormItem("类型", kind), widget.NewFormItem("监听地址", bind), widget.NewFormItem("目标地址", dest)}, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -442,7 +445,7 @@ func (u *App) tunnelDialog() {
 			}
 			fyne.Do(func() {
 				u.tunnels = append(u.tunnels, t)
-				dialog.ShowCustom("转发已开启", "关闭窗口", container.NewVBox(widget.NewLabel(t.Address+" → "+d), widget.NewButton("停止转发", func() { t.Close(); u.status.SetText("转发已停止") })), u.Window)
+				showMotionDialog("转发已开启", "关闭窗口", container.NewVBox(widget.NewLabel(t.Address+" → "+d), widget.NewButton("停止转发", func() { t.Close(); u.status.SetText("转发已停止") })), u.Window)
 			})
 			return nil
 		})
@@ -453,7 +456,7 @@ func (u *App) batchDialog() {
 	hosts := widget.NewCheckGroup(names, nil)
 	cmd := widget.NewMultiLineEntry()
 	cmd.SetMinRowsVisible(4)
-	dialog.ShowForm("批量执行", "执行", "取消", []*widget.FormItem{widget.NewFormItem("目标服务器", hosts), widget.NewFormItem("命令", cmd)}, func(ok bool) {
+	showMotionForm("批量执行", "执行", "取消", []*widget.FormItem{widget.NewFormItem("目标服务器", hosts), widget.NewFormItem("命令", cmd)}, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -465,7 +468,7 @@ func (u *App) batchDialog() {
 		task := domain.ID()
 		output := widget.NewMultiLineEntry()
 		output.SetMinRowsVisible(18)
-		dialog.ShowCustom("批量执行结果", "关闭", output, u.Window)
+		showMotionDialog("批量执行结果", "关闭", output, u.Window)
 		for _, name := range hosts.Selected {
 			id := ids[name]
 			go func() {
@@ -491,7 +494,7 @@ func (u *App) snippetsDialog() {
 		byName[s.Name] = s
 	}
 	pick := widget.NewSelect(options, func(n string) { s := byName[n]; name.SetText(s.Name); command.SetText(s.Command) })
-	dialog.ShowCustom("快捷命令", "关闭", container.NewVBox(pick, widget.NewForm(widget.NewFormItem("名称", name), widget.NewFormItem("命令", command)), container.NewHBox(widget.NewButton("保存", func() {
+	showMotionDialog("快捷命令", "关闭", container.NewVBox(pick, widget.NewForm(widget.NewFormItem("名称", name), widget.NewFormItem("命令", command)), container.NewHBox(widget.NewButton("保存", func() {
 		if name.Text == "" || command.Text == "" {
 			return
 		}

@@ -47,7 +47,7 @@ func formField(name string, obj fyne.CanvasObject, hint string) fyne.CanvasObjec
 }
 func (u *App) settingsDialog(page string) {
 	if u.settingsPopup != nil {
-		u.settingsPopup.Hide()
+		u.settingsPopup.hideImmediately()
 	}
 	profiles, e := store.All[domain.ModelProfile](u.Store, "models")
 	if e != nil {
@@ -87,8 +87,23 @@ func (u *App) settingsDialog(page string) {
 	}
 	summary := panel(padded(container.NewBorder(nil, nil, inset(widget.NewIcon(designIcon("spark")), 0, 10, 0, 0), textUI("默认", sizeMeta, theme.ColorNameSuccess, false), container.NewVBox(headingText(p.Name), metaText(provider.Selected+" · "+modelSummary))), 14), colorPanel, true, 6)
 	modelPane := container.NewVScroll(inset(container.NewVBox(headingText("模型配置"), metaText("配置助手使用的模型服务。"), gap(12), summary, gap(14), container.NewGridWithColumns(2, formField("接口类型", provider, ""), formField("模型名称", modelName, "")), gap(8), formField("服务地址", base, "填写模型服务的接口地址。"), gap(8), formField("API 密钥", key, "留空保留已保存密钥。"), gap(8), formField("上下文容量", tokens, "单位：Token，至少 4,096。")), 24, 30, 24, 30))
-	closePopup := func() { key.SetText(""); u.settingsPopup.Hide(); u.settingsThemeStatus = nil }
+	var popup *motionPopup
+	closingSettings := false
+	closePopup := func() {
+		if closingSettings {
+			return
+		}
+		closingSettings = true
+		key.SetText("")
+		popup.Hide()
+		if u.settingsPopup == popup {
+			u.settingsThemeStatus = nil
+		}
+	}
 	save := action("保存", nil, func() {
+		if closingSettings {
+			return
+		}
 		n, err := strconv.Atoi(tokens.Text)
 		if err != nil || n < 4096 {
 			u.error(errors.New("上下文容量至少为 4096"))
@@ -122,10 +137,15 @@ func (u *App) settingsDialog(page string) {
 		})
 	})
 	save.primary = true
+	save.minWidth = 72
 	done := action("完成", nil, closePopup)
 	done.primary = true
+	done.minWidth = 72
+	cancelButton := outlineAction("取消", nil, closePopup)
+	cancelButton.minWidth = 72
+	settingsActions := container.NewCenter(container.NewHBox(cancelButton, save))
 	note := metaText("模型配置保存在此设备上")
-	footer := container.NewStack(container.NewBorder(nil, nil, note, container.NewHBox(outlineAction("取消", nil, closePopup), save), layout.NewSpacer()))
+	footer := container.NewStack(container.NewBorder(nil, nil, note, settingsActions, layout.NewSpacer()))
 	mode := u.UI.Preferences().StringWithFallback(themePreference, "system")
 	var choices []*appearanceTile
 	choose := func(value string) {
@@ -163,16 +183,18 @@ func (u *App) settingsDialog(page string) {
 	terminalSize := widget.NewSelect(terminalFontOptions(), nil)
 	terminalSize.SetSelected(fmt.Sprintf("%.0f px", u.UI.Preferences().FloatWithFallback("terminal.size", float64(terminal.DefaultFontSize))))
 	terminalSize.OnChanged = func(v string) { n, _ := strconv.Atoi(strings.Fields(v)[0]); u.setTerminalSize(float32(n)) }
-	appearancePane := container.NewVScroll(inset(container.NewVBox(headingText("应用外观"), metaText("选择你习惯的工作台配色。"), gap(14), cards, gap(14), panel(padded(container.NewHBox(widget.NewIcon(designIcon("monitor")), u.settingsThemeStatus), 12), colorPanel, true, 5), gap(20), widget.NewSeparator(), gap(12), headingText("文字显示"), gap(10), container.NewBorder(nil, nil, container.NewVBox(bodyText("界面文字"), metaText("标题、正文和辅助信息同步缩放")), sized(fontSize, 155, 36)), gap(14), container.NewBorder(nil, nil, container.NewVBox(bodyText("终端文字"), metaText("使用等宽字体，保持输出对齐")), sized(terminalSize, 155, 36)), gap(20), widget.NewSeparator(), gap(12), u.backgroundSettings()), 24, 30, 24, 30))
+	motionToggle := widget.NewCheck("启用窗口动效", func(enabled bool) { u.UI.Preferences().SetBool("appearance.motion", enabled) })
+	motionToggle.SetChecked(u.UI.Preferences().BoolWithFallback("appearance.motion", true))
+	appearancePane := container.NewVScroll(inset(container.NewVBox(headingText("应用外观"), metaText("选择你习惯的工作台配色。"), gap(14), cards, gap(10), motionToggle, gap(14), panel(padded(container.NewHBox(widget.NewIcon(designIcon("monitor")), u.settingsThemeStatus), 12), colorPanel, true, 5), gap(20), widget.NewSeparator(), gap(12), headingText("文字显示"), gap(10), container.NewBorder(nil, nil, container.NewVBox(bodyText("界面文字"), metaText("标题、正文和辅助信息同步缩放")), sized(fontSize, 155, 36)), gap(14), container.NewBorder(nil, nil, container.NewVBox(bodyText("终端文字"), metaText("使用等宽字体，保持输出对齐")), sized(terminalSize, 155, 36)), gap(20), widget.NewSeparator(), gap(12), u.backgroundSettings()), 24, 30, 24, 30))
 	content := container.NewStack(modelPane)
 	var appearanceButton, modelsButton *actionButton
 	switchPage := func(name string) {
 		if name == "appearance" {
 			content.Objects = []fyne.CanvasObject{appearancePane}
-			footer.Objects = []fyne.CanvasObject{container.NewBorder(nil, nil, metaText("外观调整即时生效"), done, layout.NewSpacer())}
+			footer.Objects = []fyne.CanvasObject{container.NewBorder(nil, nil, metaText("外观调整即时生效"), container.NewCenter(done), layout.NewSpacer())}
 		} else {
 			content.Objects = []fyne.CanvasObject{modelPane}
-			footer.Objects = []fyne.CanvasObject{container.NewBorder(nil, nil, note, container.NewHBox(outlineAction("取消", nil, closePopup), save), layout.NewSpacer())}
+			footer.Objects = []fyne.CanvasObject{container.NewBorder(nil, nil, note, settingsActions, layout.NewSpacer())}
 		}
 		appearanceButton.selected = name == "appearance"
 		modelsButton.selected = name == "models"
@@ -183,10 +205,13 @@ func (u *App) settingsDialog(page string) {
 	}
 	appearanceButton = action("外观与显示", designIcon("sun"), func() { switchPage("appearance") })
 	modelsButton = action("模型配置", designIcon("spark"), func() { switchPage("models") })
+	appearanceButton.leading = true
+	modelsButton.leading = true
 	nav := sized(panel(inset(container.NewVBox(appearanceButton, modelsButton), 18, 10, 18, 10), colorPanel, false, 0), 170, 0)
 	head := container.NewBorder(nil, nil, container.NewHBox(widget.NewIcon(designIcon("settings")), textUI("设置", sizeTitle, theme.ColorNameForeground, true), metaText("NexShell")), action("", designIcon("close"), closePopup))
 	whole := edge(sized(panel(inset(head, 10, 24, 10, 24), theme.ColorNameBackground, true, 0), 0, 58), sized(panel(inset(footer, 10, 24, 10, 24), colorSoft, true, 0), 0, 62), nav, nil, content)
-	u.settingsPopup = widget.NewModalPopUp(whole, u.Window.Canvas())
+	popup = newMotionPopup(whole, u.Window.Canvas())
+	u.settingsPopup = popup
 	u.settingsPopup.Resize(fyne.NewSize(min(860, u.Window.Canvas().Size().Width-40), min(665, u.Window.Canvas().Size().Height-40)))
 	switchPage(page)
 	u.settingsPopup.Show()

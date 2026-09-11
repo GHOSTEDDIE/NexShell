@@ -1,0 +1,11 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-4047074284/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/local_package_real_model
+    local_upload_test.go:148: unexpected deployment approval: local_stat
+--- FAIL: TestLinuxLab (5.42s)
+    --- FAIL: TestLinuxLab/local_package_real_model (4.83s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	6.126s
+FAIL

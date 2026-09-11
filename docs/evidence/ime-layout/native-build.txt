@@ -1,0 +1,2 @@
+# github.com/GHOSTEDDIE/nexshell/cmd/nexshell
+ld: warning: ignoring duplicate libraries: '-lobjc'

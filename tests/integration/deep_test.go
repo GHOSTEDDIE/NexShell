@@ -46,24 +46,7 @@ func exerciseDeepTerminal(t *testing.T, ctx context.Context, m *remote.Manager, 
 	defer svc.Close()
 	profile := domain.ModelProfile{ID: "deep-test", Model: "deterministic", ContextTokens: 32000}
 	if real {
-		root, _ := os.UserConfigDir()
-		database, err := sql.Open("sqlite", "file:"+filepath.Join(root, "NexShell", "state.db")+"?mode=ro")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer database.Close()
-		var raw []byte
-		if err = database.QueryRow("SELECT payload FROM documents WHERE kind=? AND id=?", "models", "default").Scan(&raw); err != nil {
-			t.Fatal(err)
-		}
-		if err = json.Unmarshal(raw, &profile); err != nil {
-			t.Fatal(err)
-		}
-		key, err := (store.Credentials{}).Get("model:" + profile.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		secrets["model:"+profile.ID] = key
+		profile = savedDefaultModel(t, secrets)
 		svc.ModelFactory = func(ctx context.Context, p domain.ModelProfile, secrets remote.Secrets) (model.ToolCallingChatModel, error) {
 			cm, err := agent.NewModel(ctx, p, secrets)
 			if err != nil {
@@ -282,4 +265,28 @@ func (m *diagnosticModel) Stream(ctx context.Context, msgs []*schema.Message, op
 		}
 	}()
 	return reader, nil
+}
+
+func savedDefaultModel(t *testing.T, secrets secretMap) domain.ModelProfile {
+	t.Helper()
+	var profile domain.ModelProfile
+	root, _ := os.UserConfigDir()
+	database, err := sql.Open("sqlite", "file:"+filepath.Join(root, "NexShell", "state.db")+"?mode=ro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	var raw []byte
+	if err = database.QueryRow("SELECT payload FROM documents WHERE kind=? AND id=?", "models", "default").Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	if err = json.Unmarshal(raw, &profile); err != nil {
+		t.Fatal(err)
+	}
+	key, err := (store.Credentials{}).Get("model:" + profile.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets["model:"+profile.ID] = key
+	return profile
 }

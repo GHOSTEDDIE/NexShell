@@ -1,0 +1,12 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+=== RUN   TestPrototypeReferenceScene
+--- PASS: TestPrototypeReferenceScene (2.74s)
+=== RUN   TestPopupMotionLifecycle
+--- PASS: TestPopupMotionLifecycle (0.02s)
+=== RUN   TestMotionFormRetainsValidationAndSingleSubmit
+--- PASS: TestMotionFormRetainsValidationAndSingleSubmit (0.04s)
+=== RUN   TestSettingsNavigationAligned
+--- PASS: TestSettingsNavigationAligned (0.06s)
+PASS
+ok  	github.com/GHOSTEDDIE/nexshell/internal/ui	4.364s

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"strings"
@@ -71,7 +70,7 @@ func (u *App) memoryDialog() {
 		refresh()
 	})
 	content := container.NewBorder(container.NewVBox(enabled, scope, files), remove, nil, nil, text)
-	d := dialog.NewCustom("管理记忆", "关闭", content, u.Window)
+	d := newMotionDialog("管理记忆", "关闭", content, u.Window)
 	d.Resize(fyne.NewSize(660, 540))
 	d.Show()
 }
@@ -91,8 +90,8 @@ func (u *App) resumeTask() {
 		}
 		lines = append(lines, fmt.Sprintf("%s · %s@%s", h.Name, h.User, h.Address))
 	}
-	lines = append(lines, "操作："+strings.Join(task.Grant.Operations, ", "), "资源："+strings.Join(task.Grant.Resources, ", "))
-	dialog.ShowConfirm("恢复任务", strings.Join(lines, "\n"), func(ok bool) {
+	lines = append(lines, "操作："+strings.Join(task.Grant.Operations, ", "), "资源："+strings.Join(task.Grant.Resources, ", "), "本机目录："+strings.Join(task.Grant.LocalRoots, ", "))
+	showMotionConfirm("恢复任务", strings.Join(lines, "\n"), func(ok bool) {
 		if ok {
 			u.work("恢复任务", func() error { return u.Agent.Resume(id) })
 		}

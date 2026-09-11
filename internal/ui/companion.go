@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
@@ -29,7 +28,7 @@ func (u *App) openAgentTerminal(ctx context.Context, host string) (string, error
 				confirmed <- false
 				return
 			}
-			dialog.ShowConfirm("核对服务器身份", key.Address+"\n"+key.Fingerprint+"\n确认指纹后允许助手连接。", func(ok bool) { confirmed <- ok }, u.Window)
+			showMotionConfirm("核对服务器身份", key.Address+"\n"+key.Fingerprint+"\n确认指纹后允许助手连接。", func(ok bool) { confirmed <- ok }, u.Window)
 		})
 		select {
 		case ok := <-confirmed:
@@ -75,6 +74,9 @@ func (u *App) openAgentTerminal(ctx context.Context, host string) (string, error
 }
 
 func (u *App) newConversationDialog(first string, onCreated ...func()) {
+	u.newConversationWithFiles(first, nil, onCreated...)
+}
+func (u *App) newConversationWithFiles(first string, files []string, onCreated ...func()) {
 	profiles, err := store.All[domain.ModelProfile](u.Store, "models")
 	if err != nil {
 		u.error(err)
@@ -111,9 +113,9 @@ func (u *App) newConversationDialog(first string, onCreated ...func()) {
 			hosts.SetSelected([]string{name})
 		}
 	}
-	note := widget.NewLabel("选择可访问的服务器，也可以直接聊天。终端输入与变更操作会单独确认。")
+	note := widget.NewLabel("选择可访问的服务器，也可以直接聊天或分析附件。上传与变更操作会单独确认。")
 	note.Wrapping = fyne.TextWrapWord
-	d := dialog.NewCustomConfirm("新对话", "开始对话", "取消", container.NewBorder(container.NewVBox(note, widget.NewForm(widget.NewFormItem("模型", model))), nil, nil, nil, container.NewVScroll(hosts)), func(ok bool) {
+	d := newMotionConfirm("新对话", "开始对话", "取消", container.NewBorder(container.NewVBox(note, widget.NewForm(widget.NewFormItem("模型", model))), nil, nil, nil, container.NewVScroll(hosts)), func(ok bool) {
 		if !ok {
 			return
 		}
@@ -126,19 +128,26 @@ func (u *App) newConversationDialog(first string, onCreated ...func()) {
 			u.error(err)
 			return
 		}
-		for _, callback := range onCreated {
-			callback()
-		}
 		u.taskID = t.ID
 		u.refreshTasks()
 		u.taskText.SetText("")
 		u.updateTask()
-		if first != "" {
+		if first != "" || len(files) > 0 {
 			message := u.conversationInput(t.ID, first)
-			u.work("发送消息", func() error { return u.Agent.Submit(t.ID, message) })
+			u.work("发送消息", func() error {
+				if err := u.Agent.SubmitFiles(t.ID, message, files); err != nil {
+					return err
+				}
+				fyne.Do(func() {
+					for _, callback := range onCreated {
+						callback()
+					}
+				})
+				return nil
+			})
 		}
 	}, u.Window)
-	d.Resize(fyne.NewSize(540, 400))
+	d.Resize(fyne.NewSize(600, 480))
 	d.Show()
 }
 func allHostIDs(hosts []domain.Host) []string {

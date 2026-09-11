@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/localfiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
 	"io"
 	"regexp"
@@ -24,7 +25,7 @@ type Executor struct {
 var resourceName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.@:+-]*$`)
 
 func Mutates(op string) bool {
-	return op == "terminal_write" || op == "file_write" || op == "service_restart" || op == "package_install" || op == "shell"
+	return op == "upload_local" || op == "terminal_write" || op == "file_write" || op == "service_restart" || op == "package_install" || op == "shell"
 }
 func BuildCommand(r domain.Request) (string, error) {
 	switch r.Operation {
@@ -90,7 +91,7 @@ func (c *capture) Write(b []byte) (int, error) {
 	return n, e
 }
 func (e *Executor) Execute(ctx context.Context, r domain.Request) (domain.Result, error) {
-	if r.TaskID == "" || r.CallID == "" || r.HostID == "" {
+	if r.TaskID == "" || r.CallID == "" || (r.HostID == "" && !localfiles.IsOperation(r.Operation)) {
 		return domain.Result{}, errors.New("缺少执行身份")
 	}
 	if Mutates(r.Operation) {
@@ -130,6 +131,31 @@ func (e *Executor) Execute(ctx context.Context, r domain.Request) (domain.Result
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 	switch r.Operation {
+	case "local_stat", "local_list", "local_read":
+		var info localfiles.Info
+		info, err = localfiles.Inspect(ctx, r.LocalPath, r.Operation, r.ReadOffset)
+		if err == nil {
+			var payload []byte
+			payload, err = json.Marshal(info)
+			if err == nil {
+				_, err = cap.Write(payload)
+			}
+			result.ExitCode = 0
+		}
+	case "upload_local":
+		var started bool
+		started, err = e.uploadLocal(ctx, r, cap)
+		if err == nil || !started {
+			result.ExitCode = 0
+		}
+	case "file_hash":
+		var hash string
+		var size int64
+		hash, size, err = e.Manager.FileHash(ctx, r.HostID, r.Resource)
+		if err == nil {
+			_, err = fmt.Fprintf(cap, "sha256=%s\nsize=%d", hash, size)
+			result.ExitCode = 0
+		}
 	case "terminal_connect", "terminal_read", "terminal_write":
 		if e.Desktop == nil {
 			err = errors.New("终端工作台不可用")
@@ -182,7 +208,7 @@ func (e *Executor) Execute(ctx context.Context, r domain.Request) (domain.Result
 	if err != nil {
 		result.Error = err.Error()
 		result.Status = "failed"
-		if result.ExitCode < 0 && r.Operation != "file_read" && r.Operation != "terminal_read" && r.Operation != "terminal_connect" {
+		if result.ExitCode < 0 && !localfiles.IsOperation(r.Operation) && r.Operation != "file_hash" && r.Operation != "file_read" && r.Operation != "terminal_read" && r.Operation != "terminal_connect" {
 			result.Status = "unknown"
 		}
 	}
