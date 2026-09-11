@@ -12,7 +12,15 @@ import (
 func ResolveReference(value string) (string, error) {
 	p := strings.TrimSpace(value)
 	if strings.HasPrefix(p, "file://") {
-		u, err := url.Parse(p)
+		fileURL := p
+		// url.Parse treats the colon in file://D:%5Cpath as a port
+		// separator and rejects it. Normalize this Windows form to the
+		// standards-compatible file:///D:%5Cpath form first.
+		authority := strings.TrimPrefix(p, "file://")
+		if len(authority) >= 2 && authority[1] == ':' && isDriveLetter(authority[0]) {
+			fileURL = "file:///" + authority
+		}
+		u, err := url.Parse(fileURL)
 		if err != nil {
 			return "", err
 		}
@@ -55,6 +63,10 @@ func ResolveReference(value string) (string, error) {
 		return "", os.ErrInvalid
 	}
 	return real, nil
+}
+
+func isDriveLetter(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
 }
 
 var referenceTokens = regexp.MustCompile("`[^`\\n]+`|\"[^\"\\n]+\"|'[^'\\n]+'|(?:file://|~/|/|[A-Za-z]:[\\\\/])[^\\s`\"'<>，。；]+")
