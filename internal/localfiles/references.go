@@ -37,7 +37,7 @@ func ResolveReference(value string) (string, error) {
 			p = u.Path
 		}
 		p = filepath.FromSlash(p)
-		if len(p) > 2 && p[0] == '/' && p[2] == ':' {
+		if len(p) > 2 && (p[0] == '/' || p[0] == '\\') && isDriveLetter(p[1]) && p[2] == ':' {
 			p = p[1:]
 		}
 	}
