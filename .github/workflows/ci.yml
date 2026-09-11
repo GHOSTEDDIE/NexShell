@@ -47,6 +47,7 @@ jobs:
         with:
           name: desktop-${{ matrix.os }}
           path: |
+            dist/*.dmg
             dist/*.zip
             dist/*.exe
             dist/*.tar.gz

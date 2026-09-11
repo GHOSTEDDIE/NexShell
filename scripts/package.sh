@@ -20,6 +20,7 @@ case "$target_os" in
     cp -f LICENSE NOTICE docs/THIRD_PARTY_LICENSES.txt scripts/icon.icns "$bundle/Contents/Resources/"
     codesign --force --deep --sign - "$bundle"
     ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/NexShell-darwin-$target_arch.zip"
+    hdiutil create -volname NexShell -srcfolder "$bundle" -ov -format UDZO "dist/NexShell-darwin-$target_arch.dmg" >/dev/null
     ;;
   windows)
     cp "bin/$binary_name" "dist/NexShell-windows-$target_arch.exe"
