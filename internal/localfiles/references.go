@@ -17,9 +17,18 @@ func ResolveReference(value string) (string, error) {
 			return "", err
 		}
 		if u.Host != "" && u.Host != "localhost" {
-			return "", os.ErrInvalid
+			// Windows file URLs produced from a drive-letter path may encode
+			// the drive as the authority: file://D:%5Cpath%5Cfile. It is
+			// local path syntax, not a network host.
+			if len(u.Host) != 2 || u.Host[1] != ':' ||
+				(u.Host[0] < 'A' || u.Host[0] > 'Z') && (u.Host[0] < 'a' || u.Host[0] > 'z') {
+				return "", os.ErrInvalid
+			}
+			p = u.Host + u.Path
+		} else {
+			p = u.Path
 		}
-		p = filepath.FromSlash(u.Path)
+		p = filepath.FromSlash(p)
 		if len(p) > 2 && p[0] == '/' && p[2] == ':' {
 			p = p[1:]
 		}
