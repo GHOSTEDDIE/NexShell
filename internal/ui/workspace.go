@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/nativefiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
 	"github.com/GHOSTEDDIE/nexshell/internal/transfer"
@@ -103,7 +103,7 @@ func (w *workspace) layoutWorkspace() {
 		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
 	})
 	badge := panel(padded(textUI("已连接", sizeMeta, theme.ColorNameSuccess, false), 4), colorSuccessBG, false, 4)
-	toolbar := sized(inset(container.NewBorder(nil, nil, container.NewHBox(textUI(h.User+" @ "+h.Address, sizeControl, colorMuted, false), badge), container.NewHBox(splitButton, more)), 6, 18, 6, 18), 0, 44)
+	toolbar := sized(inset(container.NewBorder(nil, nil, container.NewHBox(textUI(h.User+" @ "+h.Address, sizeControl, colorMuted, false), badge), container.NewHBox(action("表格查看", nil, w.showOutputTable), splitButton, more)), 6, 18, 6, 18), 0, 44)
 	terminalPane := edge(toolbar, nil, nil, nil, panel(inset(holder, 20, 22, 20, 22), "terminalBackground", false, 0))
 	w.transfers = container.NewVBox()
 	w.fileArea = w.filePane()
@@ -301,6 +301,9 @@ func (w *workspace) transfer(local, remotePath string, upload, resume bool, excl
 	progress := widget.NewLabel("等待传输")
 	row := container.NewBorder(nil, nil, label, widget.NewButton("取消", cancel), progress)
 	w.transfers.Add(row)
+	if upload {
+		w.bottomTabs.Select(w.bottomTabs.Items[1])
+	}
 	go func() {
 		defer cancel()
 		var last time.Time
@@ -328,18 +331,16 @@ func (w *workspace) transfer(local, remotePath string, upload, resume bool, excl
 	}()
 }
 func (w *workspace) upload() {
-	dialog.ShowFileOpen(func(r fyne.URIReadCloser, e error) {
-		if e != nil {
-			w.u.error(e)
+	directory := w.dir.Text
+	w.u.pickFiles(w.ctx, nativefiles.Request{Mode: nativefiles.OpenMultiple, Title: "选择上传文件"}, func(paths []string, err error) {
+		if err != nil {
+			w.u.error(err)
 			return
 		}
-		if r == nil {
-			return
+		if len(paths) > 0 {
+			w.queueUploads(paths, directory)
 		}
-		local := r.URI().Path()
-		r.Close()
-		w.queueUploads([]string{local}, w.dir.Text)
-	}, w.u.Window)
+	})
 }
 func (w *workspace) download() {
 	f, p, ok := w.selection()
@@ -350,20 +351,15 @@ func (w *workspace) download() {
 		w.u.error(fmt.Errorf("请先压缩目录后下载"))
 		return
 	}
-	d := dialog.NewFileSave(func(out fyne.URIWriteCloser, e error) {
-		if e != nil {
-			w.u.error(e)
+	w.u.pickFiles(w.ctx, nativefiles.Request{Mode: nativefiles.Save, Title: "保存下载文件", Filename: f.Name}, func(paths []string, err error) {
+		if err != nil {
+			w.u.error(err)
 			return
 		}
-		if out == nil {
-			return
+		if len(paths) > 0 {
+			w.transfer(paths[0], p, false, false)
 		}
-		local := out.URI().Path()
-		out.Close()
-		w.transfer(local, p, false, false)
-	}, w.u.Window)
-	d.SetFileName(f.Name)
-	d.Show()
+	})
 }
 func (w *workspace) askName(title, initial string, action func(string) error) {
 	e := widget.NewEntry()

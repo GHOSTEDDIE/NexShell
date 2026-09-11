@@ -1,0 +1,5 @@
+{"error":"","mode":1,"paths":["/private/tmp/nexshell-native-input/second.txt","/private/tmp/nexshell-native-input/中文 空格 100%.txt"],"timed":false}
+{"error":"","mode":2,"paths":["/tmp/nexshell-native-input/保存测试.txt"],"timed":false}
+{"error":"","mode":3,"paths":["/private/tmp/nexshell-native-input"],"timed":false}
+{"error":"dialog canceled","mode":0,"paths":null,"timed":false}
+{"error":"context deadline exceeded","mode":0,"paths":null,"timed":true}

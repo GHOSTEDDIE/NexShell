@@ -8,6 +8,7 @@ import (
 	"image"
 	"io"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -15,15 +16,17 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/agent"
 	"github.com/GHOSTEDDIE/nexshell/internal/domain"
+	"github.com/GHOSTEDDIE/nexshell/internal/nativefiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/store"
 )
 
 type App struct {
+	filePickerOpen                 bool
+	localFilePicker                func(context.Context, nativefiles.Request) ([]string, error)
 	composer                       *attachmentComposer
 	leftWidth, rightWidth          float32
 	terminalBackground             image.Image
@@ -97,35 +100,11 @@ func New(app fyne.App, s *store.Store, m *remote.Manager, e *remote.Executor, a 
 			u.refreshAppearanceStatus()
 		}
 	})
-	u.Window.SetOnDropped(u.filesDropped)
+	u.Window.SetOnDropped(u.nativeFilesDropped)
 	u.refreshHosts()
 	u.refreshTasks()
 	m.Prompt = u.prompt
-	u.Window.SetCloseIntercept(func() {
-		if u.closing {
-			return
-		}
-		u.closing = true
-		u.status.SetText("正在保存任务与关闭连接…")
-		u.cancel()
-		u.Agent.Stop()
-		workspaces := u.workspaces
-		u.workspaces = nil
-		tunnels := append([]*remote.Tunnel(nil), u.tunnels...)
-		u.Window.SetContent(container.NewCenter(widget.NewLabel("正在保存任务与关闭连接…")))
-		go func() {
-			u.Manager.Close()
-			for _, ws := range workspaces {
-				ws.close()
-			}
-			for _, t := range tunnels {
-				t.Close()
-			}
-			u.Agent.Close()
-			_ = u.Store.Close()
-			fyne.Do(func() { u.Window.SetCloseIntercept(nil); u.Window.Close() })
-		}()
-	})
+	u.configureLifecycle()
 	go u.watchTasks()
 	return u
 }
@@ -329,12 +308,17 @@ func splitLines(s string) []string {
 	return out
 }
 func (u *App) importHosts() {
-	dialog.ShowFileOpen(func(r fyne.URIReadCloser, e error) {
+	u.pickFiles(u.ctx, nativefiles.Request{Title: "导入连接", Patterns: []string{"*.json"}}, func(paths []string, e error) {
 		if e != nil {
 			u.error(e)
 			return
 		}
-		if r == nil {
+		if len(paths) == 0 {
+			return
+		}
+		r, e := os.Open(paths[0])
+		if e != nil {
+			u.error(e)
 			return
 		}
 		defer r.Close()
@@ -356,22 +340,31 @@ func (u *App) importHosts() {
 			}
 		}
 		u.refreshHosts()
-	}, u.Window)
+	})
 }
 func (u *App) exportHosts() {
-	dialog.ShowFileSave(func(w fyne.URIWriteCloser, e error) {
+	u.pickFiles(u.ctx, nativefiles.Request{Mode: nativefiles.Save, Title: "导出连接", Filename: "nexshell-hosts.json"}, func(paths []string, e error) {
 		if e != nil {
 			u.error(e)
 			return
 		}
-		if w == nil {
+		if len(paths) == 0 {
 			return
 		}
-		defer w.Close()
-		enc := json.NewEncoder(w)
+		f, e := os.Create(paths[0])
+		if e != nil {
+			u.error(e)
+			return
+		}
+		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
-		u.error(enc.Encode(u.hosts))
-	}, u.Window)
+		e = enc.Encode(u.hosts)
+		closeErr := f.Close()
+		if e == nil {
+			e = closeErr
+		}
+		u.error(e)
+	})
 }
 func (u *App) modelDialog() { u.settingsDialog("models") }
 

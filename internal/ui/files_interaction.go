@@ -5,7 +5,9 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver"
 	"fyne.io/fyne/v2/widget"
+	"github.com/GHOSTEDDIE/nexshell/internal/platforminput"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"os"
 	"path"
@@ -16,19 +18,41 @@ import (
 func containsPosition(pos, origin fyne.Position, size fyne.Size) bool {
 	return pos.X >= origin.X && pos.Y >= origin.Y && pos.X < origin.X+size.Width && pos.Y < origin.Y+size.Height
 }
+
+func (u *App) nativeFilesDropped(pos fyne.Position, uris []fyne.URI) {
+	// Fyne coalesces mouse movement until the next frame. Read the native
+	// pointer at drop time, before dispatching UI work, rather than its old position.
+	if window, ok := u.Window.(driver.NativeWindow); ok {
+		window.RunNative(func(c any) {
+			var handle uintptr
+			switch c := c.(type) {
+			case driver.MacWindowContext:
+				handle = c.NSWindow
+			case driver.WindowsWindowContext:
+				handle = c.HWND
+			}
+			if x, y, ok := platforminput.DropPosition(handle); ok {
+				size := u.Window.Canvas().Size()
+				pos = fyne.NewPos(float32(x)*size.Width, float32(y)*size.Height)
+			}
+		})
+	}
+	fyne.Do(func() { u.filesDropped(pos, uris) })
+}
+
 func (u *App) filesDropped(pos fyne.Position, uris []fyne.URI) {
-	if u.closing {
+	if u.closing || u.filePickerOpen || len(uris) == 0 || len(u.Window.Canvas().Overlays().List()) > 0 {
 		return
 	}
 	if u.dropAttachments(pos, uris) {
 		return
 	}
 	for _, w := range u.workspaces {
-		if w.ctx.Err() != nil || u.tabs.Selected() != w.tab || w.bottomTabs.Selected() != w.fileTab {
+		if w.ctx.Err() != nil || u.tabs.Selected() != w.tab {
 			continue
 		}
-		origin := u.UI.Driver().AbsolutePositionForObject(w.fileArea)
-		if !containsPosition(pos, origin, w.fileArea.Size()) {
+		origin := u.UI.Driver().AbsolutePositionForObject(w.tab.Content)
+		if !containsPosition(pos, origin, w.tab.Content.Size()) {
 			continue
 		}
 		paths := []string{}
@@ -39,11 +63,44 @@ func (u *App) filesDropped(pos fyne.Position, uris []fyne.URI) {
 			}
 			paths = append(paths, uri.Path())
 		}
-		w.queueUploads(paths, w.dir.Text)
+		origin = u.UI.Driver().AbsolutePositionForObject(w.fileArea)
+		if w.bottomTabs.Selected() == w.fileTab && containsPosition(pos, origin, w.fileArea.Size()) {
+			w.queueUploads(paths, w.dir.Text)
+		} else {
+			session := w.activeSession.Load()
+			for i, terminal := range w.terminals {
+				origin := u.UI.Driver().AbsolutePositionForObject(terminal)
+				if containsPosition(pos, origin, terminal.Size()) && i < len(w.sessions) {
+					session = w.sessions[i]
+					break
+				}
+			}
+			if session == nil {
+				u.error(fmt.Errorf("终端尚未连接，请连接后再上传文件"))
+				return
+			}
+			// Resolve the dropped-on terminal's cwd, even if the file browser
+			// has navigated elsewhere or another split pane has keyboard focus.
+			u.work("准备上传", func() error {
+				directory, err := u.Manager.TerminalDirectory(w.ctx, w.host.ID, session)
+				if err != nil {
+					return err
+				}
+				fyne.Do(func() {
+					if w.ctx.Err() == nil {
+						w.queueUploads(paths, directory)
+					}
+				})
+				return nil
+			})
+		}
 		return
 	}
 }
 func (w *workspace) queueUploads(locals []string, directory string) {
+	if len(locals) == 0 || w.ctx.Err() != nil {
+		return
+	}
 	if !path.IsAbs(directory) {
 		w.u.error(fmt.Errorf("请等待终端目录就绪或选择上传目录"))
 		return

@@ -41,6 +41,7 @@ func (e *Emulator) setAltScreenMode(on bool) {
 		return
 	}
 	if on {
+		e.primaryPhantom = e.atPhantom
 		e.scr = &e.scrs[1]
 		e.scrs[1].cur = e.scrs[0].cur
 		e.scr.Clear()
@@ -48,6 +49,7 @@ func (e *Emulator) setAltScreenMode(on bool) {
 		e.setCursor(0, 0)
 	} else {
 		e.scr = &e.scrs[0]
+		e.atPhantom = e.primaryPhantom
 	}
 	if e.cb.AltScreen != nil {
 		e.cb.AltScreen(on)

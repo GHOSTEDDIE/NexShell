@@ -3,3 +3,5 @@
 Source: https://github.com/charmbracelet/x/tree/3986e9119cf98efcf5809969e11ad369fddb5522/vt
 
 The original MIT license and upstream tests are retained. `utf8.go` extends the previous cell when a grapheme is split across transport writes. The pinned upstream flushed its grapheme buffer after each `Write`, so `Write("e")` followed by `Write("\u0301")` left a separate zero-width cell. Regression cases in the application cover chunked UTF-8, combining marks, scrollback and alternate screens. Run upstream tests as well when changing this patch.
+
+Normal-screen resize now reflows logical output using explicit soft-wrap metadata; explicit line breaks stay separate. History and styled/wide cells are preserved. Alternate-screen programs retain grid resizing, while the saved normal screen is reflowed for restoration. Scrollback ring operations retain wrap metadata. `reflow_test.go` covers resizing, history, Unicode, style, cursor continuity and alternate-screen restoration.

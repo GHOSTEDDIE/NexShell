@@ -17,12 +17,14 @@ type Screen struct {
 	scroll uv.Rectangle
 	// scrollback is the scrollback buffer for lines scrolled off the top.
 	scrollback *Scrollback
+	wrapAt     []int
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
 	s := Screen{
 		buf:        uv.NewRenderBuffer(w, h),
+		wrapAt:     make([]int, h),
 		scrollback: NewScrollback(DefaultScrollbackSize),
 	}
 	s.scroll = s.buf.Bounds()
@@ -34,6 +36,7 @@ func NewScreen(w, h int) *Screen {
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
 	s.buf.Clear()
+	clear(s.wrapAt)
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
@@ -72,6 +75,9 @@ func (s *Screen) Height() int {
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
+	wraps := make([]int, height)
+	copy(wraps, s.wrapAt)
+	s.wrapAt = wraps
 	if s.buf == nil {
 		s.buf = uv.NewRenderBuffer(width, height)
 	} else {
@@ -100,7 +106,7 @@ func (s *Screen) ClearWithScrollback() {
 		for y := 0; y < s.buf.Height(); y++ {
 			line := s.buf.Line(y)
 			if line != nil && !s.isLineEmpty(line) {
-				s.scrollback.Push(line)
+				s.scrollback.pushWrapped(line, s.wrapAt[y])
 			}
 		}
 	}
@@ -120,6 +126,11 @@ func (s *Screen) isLineEmpty(line uv.Line) bool {
 // ClearArea clears the given area.
 func (s *Screen) ClearArea(area uv.Rectangle) {
 	s.buf.ClearArea(area)
+	if area.Max.X >= s.Width() {
+		for y := max(0, area.Min.Y); y < min(len(s.wrapAt), area.Max.Y); y++ {
+			s.wrapAt[y] = 0
+		}
+	}
 	s.touchArea(area)
 }
 
@@ -332,6 +343,9 @@ func (s *Screen) InsertLine(n int) bool {
 	}
 
 	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
+	count := min(n, s.scroll.Max.Y-y)
+	copy(s.wrapAt[y+count:s.scroll.Max.Y], s.wrapAt[y:s.scroll.Max.Y-count])
+	clear(s.wrapAt[y : y+count])
 
 	return true
 }
@@ -363,10 +377,15 @@ func (s *Screen) DeleteLine(n int) bool {
 		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
+		for row := y; row < y+linesToSave; row++ {
+			s.scrollback.pushWrapped(s.buf.Line(row), s.wrapAt[row])
+		}
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+	count := min(n, scroll.Max.Y-y)
+	copy(s.wrapAt[y:scroll.Max.Y-count], s.wrapAt[y+count:scroll.Max.Y])
+	clear(s.wrapAt[scroll.Max.Y-count : scroll.Max.Y])
 
 	return true
 }

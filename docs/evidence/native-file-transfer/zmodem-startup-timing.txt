@@ -1,0 +1,36 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-3751552649/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+--- FAIL: TestLinuxLab (15.76s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.72s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.68s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.12s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.75s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.70s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.78s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.99s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.12s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.74s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.10s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (15.78s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.11s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+--- FAIL: TestLinuxLab (16.01s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (15.11s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin empty: EOF; received="rz\r**\x18B00000000000000\r\x8a\x11"
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	158.889s
+FAIL

@@ -1,0 +1,9 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-3721237658/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+--- FAIL: TestLinuxLab (0.76s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (0.13s)
+        integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin: existing file prefix differs; resume refused; received="rz\r**\x18B00000000000000\r\x8a\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250662403 100600 0 1 40000\x18@\x18k\xd9a)$\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250662403 100600 0 1 40000\x18@\x18k\xd9a)$\x11"
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	3.218s
+FAIL

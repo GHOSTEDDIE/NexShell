@@ -1,0 +1,6 @@
+--- FAIL: TestReceiveResumeWithRepeatedFileHeader (0.00s)
+    --- FAIL: TestReceiveResumeWithRepeatedFileHeader/matching (0.00s)
+        resume_test.go:48: resume result: existing file prefix differs; resume refused
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/transfer/zmodem	0.640s
+FAIL

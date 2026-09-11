@@ -1,0 +1,2 @@
+ok  	github.com/GHOSTEDDIE/nexshell/internal/transfer	1.616s
+ok  	github.com/GHOSTEDDIE/nexshell/internal/transfer/zmodem	2.092s

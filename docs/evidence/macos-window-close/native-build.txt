@@ -1,0 +1,2 @@
+# github.com/GHOSTEDDIE/nexshell/tests/nativelifecycle
+ld: warning: ignoring duplicate libraries: '-lobjc'

@@ -1,0 +1,8 @@
+# github.com/GHOSTEDDIE/nexshell/internal/terminal.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-463914761/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+--- FAIL: TestResizePaintUsesNewGridImmediately (0.07s)
+    repaint_resize_test.go:21: old grid still painted: 1920 cells, want 884
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/terminal	0.956s
+FAIL

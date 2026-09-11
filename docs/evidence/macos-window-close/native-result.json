@@ -1,0 +1,5 @@
+{
+  "events_after_close": 4145,
+  "events_after_quit": 4438,
+  "graceful_exit_marker": true
+}

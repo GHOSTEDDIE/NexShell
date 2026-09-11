@@ -13,9 +13,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+	"github.com/GHOSTEDDIE/nexshell/internal/nativefiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
 )
 
@@ -80,15 +79,20 @@ func (u *App) backgroundSettings() fyne.CanvasObject {
 	}
 	var choose, remove *widget.Button
 	choose = widget.NewButton("选择图片", func() {
-		d := dialog.NewFileOpen(func(r fyne.URIReadCloser, err error) {
+		u.pickFiles(u.ctx, nativefiles.Request{Title: "选择背景图片", Patterns: []string{"*.png", "*.jpg", "*.jpeg"}}, func(paths []string, err error) {
 			if err != nil {
 				u.error(err)
 				return
 			}
-			if r == nil {
+			if len(paths) == 0 {
 				return
 			}
-			name := r.URI().Name()
+			r, err := os.Open(paths[0])
+			if err != nil {
+				u.error(err)
+				return
+			}
+			name := filepath.Base(paths[0])
 			choose.Disable()
 			remove.Disable()
 			u.work("设置背景图", func() error {
@@ -126,9 +130,7 @@ func (u *App) backgroundSettings() fyne.CanvasObject {
 				})
 				return nil
 			})
-		}, u.Window)
-		d.SetFilter(storage.NewExtensionFileFilter([]string{".png", ".jpg", ".jpeg"}))
-		d.Show()
+		})
 	})
 	remove = widget.NewButton("移除背景", func() {
 		err := os.Remove(filepath.Join(u.Store.Dir, backgroundFile))

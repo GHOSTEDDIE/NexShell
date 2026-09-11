@@ -1,0 +1,7 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/charmbracelet/x/vt
+cpu: Apple M1 Pro
+BenchmarkResizeReflowHistory-10    	       6	   9587639 ns/op	51615376 B/op	    8071 allocs/op
+PASS
+ok  	github.com/charmbracelet/x/vt	0.612s

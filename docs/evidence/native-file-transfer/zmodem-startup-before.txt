@@ -1,0 +1,6 @@
+--- FAIL: TestReceiveResumeWithRepeatedFileHeader (0.01s)
+    --- FAIL: TestReceiveResumeWithRepeatedFileHeader/matching (0.01s)
+        resume_test.go:76: sent 3 ready frames, want one startup and one file completion
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/transfer/zmodem	0.634s
+FAIL

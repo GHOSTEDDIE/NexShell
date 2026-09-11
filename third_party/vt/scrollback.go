@@ -14,6 +14,7 @@ type Scrollback struct {
 	lines    []uv.Line
 	maxLines int
 	head     int
+	wrapAt   []int
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -29,7 +30,8 @@ func NewScrollback(maxLines int) *Scrollback {
 
 // Push adds a line to the scrollback buffer.
 // If the buffer is full, the oldest line is removed.
-func (s *Scrollback) Push(line uv.Line) {
+func (s *Scrollback) Push(line uv.Line) { s.pushWrapped(line, 0) }
+func (s *Scrollback) pushWrapped(line uv.Line, wrap int) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
@@ -46,14 +48,19 @@ func (s *Scrollback) Push(line uv.Line) {
 	}
 
 	// Clone the line content up to and including the last non-empty cell
+	if wrap > 0 {
+		lastNonEmpty = min(len(line), wrap) - 1
+	}
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
 	if len(s.lines) >= s.maxLines {
 		s.lines[s.head] = cloned
+		s.wrapAt[s.head] = wrap
 		s.head = (s.head + 1) % len(s.lines)
 		return
 	}
 	s.lines = append(s.lines, cloned)
+	s.wrapAt = append(s.wrapAt, wrap)
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
@@ -98,10 +105,13 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 	// Changing capacity is rare. Normalize once, retaining the newest lines.
 	keep := min(len(s.lines), maxLines)
 	lines := make([]uv.Line, keep)
+	wraps := make([]int, keep)
 	for i := range lines {
 		lines[i] = s.Line(len(s.lines) - keep + i)
+		wraps[i] = s.WrappedAt(len(s.lines) - keep + i)
 	}
 	s.lines, s.head, s.maxLines = lines, 0, maxLines
+	s.wrapAt = wraps
 }
 
 // Line returns the line at the given index.
@@ -136,6 +146,7 @@ func (s *Scrollback) Clear() {
 	}
 	clear(s.lines)
 	s.lines = s.lines[:0]
+	s.wrapAt = s.wrapAt[:0]
 	s.head = 0
 }
 
@@ -148,4 +159,11 @@ func (s *Scrollback) CellAt(x, y int) *uv.Cell {
 		return nil
 	}
 	return &line[x]
+}
+
+func (s *Scrollback) WrappedAt(index int) int {
+	if s == nil || index < 0 || index >= len(s.lines) {
+		return 0
+	}
+	return s.wrapAt[(s.head+index)%len(s.lines)]
 }

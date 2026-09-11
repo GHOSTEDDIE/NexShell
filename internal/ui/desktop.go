@@ -82,7 +82,9 @@ func (u *App) desktop(side fyne.CanvasObject) fyne.CanvasObject {
 	u.status.SizeName = sizeMeta
 	u.status.Importance = widget.LowImportance
 	footer := container.NewBorder(nil, nil, u.status, u.sessionCount, layout.NewSpacer())
-	u.Window.SetMainMenu(fyne.NewMainMenu(fyne.NewMenu("连接", fyne.NewMenuItem("新建连接", func() { u.editHost(nil) }), fyne.NewMenuItem("导入连接", u.importHosts), fyne.NewMenuItem("导出连接", u.exportHosts)), fyne.NewMenu("工具", fyne.NewMenuItem("批量执行", u.batchDialog), fyne.NewMenuItem("端口转发", u.tunnelDialog), fyne.NewMenuItem("快捷命令", u.snippetsDialog))))
+	quitItem := fyne.NewMenuItem("退出 NexShell", u.quit)
+	quitItem.IsQuit = true
+	u.Window.SetMainMenu(fyne.NewMainMenu(fyne.NewMenu("连接", fyne.NewMenuItem("新建连接", func() { u.editHost(nil) }), fyne.NewMenuItem("导入连接", u.importHosts), fyne.NewMenuItem("导出连接", u.exportHosts), fyne.NewMenuItemSeparator(), quitItem), fyne.NewMenu("工具", fyne.NewMenuItem("批量执行", u.batchDialog), fyne.NewMenuItem("端口转发", u.tunnelDialog), fyne.NewMenuItem("快捷命令", u.snippetsDialog))))
 	return edge(sized(panel(inset(toolbar, 6, 16, 6, 16), colorSoft, false, 0), 0, 44), sized(panel(inset(footer, 0, 18, 0, 18), theme.ColorNameBackground, true, 0), 0, 28), nil, nil, u.desktopBody)
 }
 func (u *App) toggleAssistant() {

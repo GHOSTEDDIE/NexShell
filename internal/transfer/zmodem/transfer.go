@@ -1,6 +1,7 @@
 package zmodem
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -26,6 +27,9 @@ func (c *Codec) Send(ctx context.Context, files []string, initial *Header, progr
 	if initial != nil {
 		h = *initial
 	} else {
+		if err = c.WriteHeader(Position(ZRQINIT, 0)); err != nil {
+			return err
+		}
 		h, err = c.ReadHeader()
 		if err != nil {
 			return err
@@ -190,6 +194,19 @@ func (c *Codec) Receive(ctx context.Context, directory string, initial *Header, 
 	if err = os.MkdirAll(directory, 0700); err != nil {
 		return err
 	}
+	// Respond to the sender's request after it has initialized its terminal.
+	// Sending proactively can be flushed during peer startup, or cause duplicate
+	// ZRINIT/ZFILE exchanges when both the proactive reply and request arrive.
+	if initial == nil {
+		h, e := c.ReadHeader()
+		if e != nil {
+			return e
+		}
+		initial = &h
+	}
+	if initial.Type != ZRQINIT {
+		return fmt.Errorf("expected ZRQINIT, got %d", initial.Type)
+	}
 	ready := Header{Type: ZRINIT, Data: [4]byte{0, 0, 0, 0x23}}
 	if err = c.WriteHeader(ready); err != nil {
 		return err
@@ -261,11 +278,11 @@ func (c *Codec) Receive(ctx context.Context, directory string, initial *Header, 
 					if e = c.WriteHeader(Position(ZCRC, uint32(position))); e != nil {
 						return e
 					}
-					answer, e := c.ReadHeader()
+					answer, e := c.readResumeCRC(ctx, meta)
 					if e != nil {
 						return e
 					}
-					if answer.Type != ZCRC || answer.Position() != hash.Sum32() {
+					if answer.Position() != hash.Sum32() {
 						return errors.New("existing file prefix differs; resume refused")
 					}
 				}
@@ -365,4 +382,33 @@ func (c *Codec) Receive(ctx context.Context, directory string, initial *Header, 
 			return fmt.Errorf("unexpected receive header %d", h.Type)
 		}
 	}
+}
+
+// A peer can have sent ZFILE twice in response to startup ZRINIT frames before
+// our checksum request arrives. Consume only identical metadata; it is not a
+// checksum response and must never cause a valid prefix to be rejected.
+func (c *Codec) readResumeCRC(ctx context.Context, metadata []byte) (Header, error) {
+	for repeats := 0; repeats <= 4; repeats++ {
+		if err := ctx.Err(); err != nil {
+			return Header{}, err
+		}
+		answer, err := c.ReadHeader()
+		if err != nil {
+			return Header{}, err
+		}
+		if answer.Type == ZCRC {
+			return answer, nil
+		}
+		if answer.Type != ZFILE {
+			return Header{}, fmt.Errorf("unexpected resume response: %d", answer.Type)
+		}
+		meta, _, err := c.ReadData(answer.CRC32)
+		if err != nil {
+			return Header{}, err
+		}
+		if !bytes.Equal(meta, metadata) {
+			return Header{}, errors.New("file metadata changed during resume verification")
+		}
+	}
+	return Header{}, errors.New("too many repeated file headers during resume verification")
 }

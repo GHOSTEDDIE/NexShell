@@ -155,7 +155,6 @@ func (v *View) SetFontSize(size float32) {
 }
 func (v *View) MinSize() fyne.Size { return fyne.NewSize(240, 150) }
 func (v *View) Resize(size fyne.Size) {
-	v.BaseWidget.Resize(size)
 	cols := max(2, int(size.Width/v.cellSize.Width))
 	rows := max(2, int(size.Height/v.cellSize.Height))
 	if cols != v.cols || rows != v.rows {
@@ -167,6 +166,7 @@ func (v *View) Resize(size fyne.Size) {
 			v.queueResize(terminalResize{rows: rows, cols: cols, apply: v.OnResize})
 		}
 	}
+	v.BaseWidget.Resize(size)
 }
 func (v *View) FocusGained() {
 	v.focused = true

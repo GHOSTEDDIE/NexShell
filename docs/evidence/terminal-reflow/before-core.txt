@@ -1,0 +1,9 @@
+--- FAIL: TestResizeReflowsWithoutLosingOutput (0.00s)
+    reflow_test.go:35: shrink lost output: "abcdefghijklnext", want "abcdefghijklmnopqrstuvwxyz0123456789next"
+--- FAIL: TestResizeJoinsSoftWrapButPreservesNewline (0.00s)
+    reflow_test.go:52: soft/hard breaks not preserved: "abcdefgh" / "ijkl"
+--- FAIL: TestHeightShrinkKeepsOutputInHistory (0.00s)
+    reflow_test.go:62: height shrink lost output: "onetwothree"
+FAIL
+exit status 1
+FAIL	github.com/charmbracelet/x/vt	0.478s

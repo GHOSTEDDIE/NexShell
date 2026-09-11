@@ -157,3 +157,5 @@ func (c *Core) Search(query string) []int {
 	}
 	return hits
 }
+
+func (c *Core) LogicalLines() []string { c.mu.Lock(); defer c.mu.Unlock(); return c.vt.LogicalLines() }

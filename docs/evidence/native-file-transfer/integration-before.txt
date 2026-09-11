@@ -1,0 +1,37 @@
+# github.com/GHOSTEDDIE/nexshell/tests/integration.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+ld: warning: '/private/var/folders/gw/1m89fz797rj9rz60drx7k8180000gp/T/go-link-2923367116/000019.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+=== RUN   TestLinuxLab
+=== RUN   TestLinuxLab/authentication_and_shell
+=== RUN   TestLinuxLab/sftp_conflict_resume
+=== RUN   TestLinuxLab/changed_host_key
+=== RUN   TestLinuxLab/jump_host
+=== RUN   TestLinuxLab/local_package_upload
+=== RUN   TestLinuxLab/local_package_agent
+    local_upload_test.go:184: deployment real=false model=deterministic: local metadata, exact approval, SFTP upload and independent verification passed
+=== RUN   TestLinuxLab/local_package_real_model
+    integration_test.go:217: real model opt-in required
+=== RUN   TestLinuxLab/cancel_unknown_not_replayed
+=== RUN   TestLinuxLab/monitor_and_forwarding
+=== RUN   TestLinuxLab/zmodem_lrzsz
+    integration_test.go:320: cd /tmp/fixture && sz -b -e binary.bin: existing file prefix differs; resume refused; received="rz\r**\x18B00000000000000\r\x8a\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11**\x18B02000000400c47\r\x8a\x11\x18@\x18k\xdd\xcd\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250662261 100600 0 1 40000\x18@\x18k\x18SH+j\x11*\x18C\x18D\x18@\x18@\x18@\x18AKa\xa5Dbinary.bin\x18@40000 15250662261 100600 0 1 40000\x18@\x18k\x18SH+j\x11*\x18C\x18M\xf1$\xcd>\xfa\x18X\x18Y\x18\xc0"
+=== RUN   TestLinuxLab/companion_existing_terminal
+=== RUN   TestLinuxLab/deep_terminal_delegation
+=== RUN   TestLinuxLab/eino_approval_execution_verification
+--- FAIL: TestLinuxLab (13.13s)
+    --- PASS: TestLinuxLab/authentication_and_shell (2.35s)
+    --- PASS: TestLinuxLab/sftp_conflict_resume (0.41s)
+    --- PASS: TestLinuxLab/changed_host_key (0.04s)
+    --- PASS: TestLinuxLab/jump_host (0.34s)
+    --- PASS: TestLinuxLab/local_package_upload (3.21s)
+    --- PASS: TestLinuxLab/local_package_agent (0.56s)
+    --- SKIP: TestLinuxLab/local_package_real_model (0.00s)
+    --- PASS: TestLinuxLab/cancel_unknown_not_replayed (2.18s)
+    --- PASS: TestLinuxLab/monitor_and_forwarding (0.08s)
+    --- FAIL: TestLinuxLab/zmodem_lrzsz (0.25s)
+    --- PASS: TestLinuxLab/companion_existing_terminal (0.12s)
+    --- PASS: TestLinuxLab/deep_terminal_delegation (0.51s)
+    --- PASS: TestLinuxLab/eino_approval_execution_verification (0.49s)
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/tests/integration	14.326s
+FAIL

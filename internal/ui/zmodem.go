@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/dialog"
+	"github.com/GHOSTEDDIE/nexshell/internal/nativefiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/remote"
 	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
 	"github.com/GHOSTEDDIE/nexshell/internal/transfer"
@@ -21,19 +21,12 @@ func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View 
 			}
 			ch := make(chan choice, 1)
 			fyne.Do(func() {
-				dialog.ShowFileOpen(func(r fyne.URIReadCloser, e error) {
-					if e != nil {
-						ch <- choice{err: e}
-						return
+				w.u.pickFiles(ctx, nativefiles.Request{Mode: nativefiles.OpenMultiple, Title: "选择上传文件"}, func(paths []string, err error) {
+					if err == nil && len(paths) == 0 {
+						err = errors.New("已取消上传")
 					}
-					if r == nil {
-						ch <- choice{err: errors.New("已取消上传")}
-						return
-					}
-					p := r.URI().Path()
-					r.Close()
-					ch <- choice{files: []string{p}}
-				}, w.u.Window)
+					ch <- choice{files: paths, err: err}
+				})
 			})
 			select {
 			case c := <-ch:
@@ -49,17 +42,16 @@ func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View 
 			}
 			ch := make(chan choice, 1)
 			fyne.Do(func() {
-				dialog.ShowFolderOpen(func(uri fyne.ListableURI, e error) {
-					if e != nil {
-						ch <- choice{err: e}
-						return
+				w.u.pickFiles(ctx, nativefiles.Request{Mode: nativefiles.Directory, Title: "选择下载目录"}, func(paths []string, err error) {
+					if err == nil && len(paths) == 0 {
+						err = errors.New("已取消下载")
 					}
-					if uri == nil {
-						ch <- choice{err: errors.New("已取消下载")}
-						return
+					c := choice{err: err}
+					if len(paths) > 0 {
+						c.dir = paths[0]
 					}
-					ch <- choice{dir: uri.Path()}
-				}, w.u.Window)
+					ch <- c
+				})
 			})
 			select {
 			case c := <-ch:

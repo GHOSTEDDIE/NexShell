@@ -7,10 +7,10 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/localfiles"
+	"github.com/GHOSTEDDIE/nexshell/internal/nativefiles"
 	"github.com/GHOSTEDDIE/nexshell/internal/platforminput"
 )
 
@@ -104,24 +104,16 @@ func (c *attachmentComposer) clear() {
 	c.refresh()
 }
 func (u *App) chooseAttachment() {
-	dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+	composer := u.composer
+	u.pickFiles(u.ctx, nativefiles.Request{Mode: nativefiles.OpenMultiple, Title: "选择附件"}, func(paths []string, err error) {
 		if err != nil {
 			u.error(err)
 			return
 		}
-		if reader == nil {
-			return
+		if len(paths) > 0 {
+			u.error(composer.add(paths))
 		}
-		uri := reader.URI()
-		reader.Close()
-		if uri.Scheme() != "file" {
-			u.error(fmt.Errorf("请选择本机文件"))
-			return
-		}
-		if err = u.composer.add([]string{uri.Path()}); err != nil {
-			u.error(err)
-		}
-	}, u.Window).Show()
+	})
 }
 func (u *App) dropAttachments(pos fyne.Position, uris []fyne.URI) bool {
 	c := u.composer

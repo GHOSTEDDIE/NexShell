@@ -71,7 +71,8 @@ type Emulator struct {
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
-	atPhantom bool
+	atPhantom      bool
+	primaryPhantom bool
 }
 
 var _ Terminal = (*Emulator)(nil)
@@ -214,32 +215,28 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
-	x, y := e.scr.CursorPosition()
-	if e.atPhantom {
-		if x < width-1 {
-			e.atPhantom = false
+
+	if width < 2 || height < 1 {
+		return
+	}
+	if !e.IsAltScreen() && e.scr.scroll == e.scr.buf.Bounds() {
+		e.atPhantom = e.scr.reflowResize(width, height, e.atPhantom)
+		e.scrs[1].Resize(width, height)
+	} else {
+		x, y := e.scr.CursorPosition()
+		if e.atPhantom && x < width-1 {
 			x++
+			e.atPhantom = false
 		}
+		if e.IsAltScreen() && e.scrs[0].scroll == e.scrs[0].buf.Bounds() {
+			e.primaryPhantom = e.scrs[0].reflowResize(width, height, e.primaryPhantom)
+		} else {
+			e.scrs[0].Resize(width, height)
+		}
+		e.scrs[1].Resize(width, height)
+		e.setCursor(max(0, min(x, width-1)), max(0, min(y, height-1)))
 	}
-
-	if y < 0 {
-		y = 0
-	}
-	if y >= height {
-		y = height - 1
-	}
-	if x < 0 {
-		x = 0
-	}
-	if x >= width {
-		x = width - 1
-	}
-
-	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
 	e.tabstops = uv.DefaultTabStops(width)
-
-	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
 		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
