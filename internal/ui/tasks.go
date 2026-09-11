@@ -86,7 +86,7 @@ func (u *App) agentPanel() fyne.CanvasObject {
 	menuButton = action("", designIcon("more"), func() {
 		history := func() { showMotionDialog("历史对话", "关闭", sized(u.taskList, 480, 36), u.Window) }
 		menu := fyne.NewMenu("", fyne.NewMenuItem("新对话", func() { u.newConversationDialog("") }), fyne.NewMenuItem("历史对话", history), fyne.NewMenuItem("运维任务", u.newTaskDialog), fyne.NewMenuItem("待确认操作", u.approvalDialog), fyne.NewMenuItem("恢复任务", u.resumeTask), fyne.NewMenuItem("管理记忆", u.memoryDialog))
-		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(menuButton).Add(fyne.NewPos(0, 30)))
+		showActionMenu(menu, u.Window.Canvas(), menuButton)
 	})
 	header := sized(inset(container.NewBorder(nil, nil, container.NewHBox(widget.NewIcon(designIcon("spark")), headingText("助手")), container.NewHBox(menuButton, action("", designIcon("close"), u.toggleAssistant))), 0, 14, 0, 18), 0, 38)
 	u.assistantContext = metaText("尚未连接服务器")

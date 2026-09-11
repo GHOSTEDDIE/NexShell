@@ -100,7 +100,7 @@ func (w *workspace) layoutWorkspace() {
 			showMotionDialog("搜索终端", "关闭", sized(find, 440, 36), u.Window)
 		}
 		menu := fyne.NewMenu("", fyne.NewMenuItem("搜索终端输出", search), fyne.NewMenuItem("快捷命令", u.snippetsDialog), fyne.NewMenuItem("命令输入栏", func() { showMotionDialog("执行命令", "关闭", sized(w.commandBar(), 650, 40), u.Window) }), fyne.NewMenuItem("终端字号", func() { u.settingsDialog("appearance") }), fyne.NewMenuItem("关闭会话", func() { u.closeWorkspace(w.tab) }))
-		widget.NewPopUpMenu(menu, u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
+		showActionMenu(menu, u.Window.Canvas(), more)
 	})
 	badge := panel(padded(textUI("已连接", sizeMeta, theme.ColorNameSuccess, false), 4), colorSuccessBG, false, 4)
 	toolbar := sized(inset(container.NewBorder(nil, nil, container.NewHBox(textUI(h.User+" @ "+h.Address, sizeControl, colorMuted, false), badge), container.NewHBox(action("表格查看", nil, w.showOutputTable), splitButton, more)), 6, 18, 6, 18), 0, 44)
@@ -199,14 +199,14 @@ func (w *workspace) filePane() fyne.CanvasObject {
 		row.selectFile = func() { w.fileList.Select(i) }
 		row.menu = func(pos fyne.Position) {
 			w.selectedFile = i
-			widget.NewPopUpMenu(w.fileMenu(), w.u.Window.Canvas()).ShowAtPosition(pos)
+			showContextMenu(w.fileMenu(), w.u.Window.Canvas(), pos)
 		}
 	})
 	w.fileList.HideSeparators = true
 	w.fileList.OnSelected = func(i widget.ListItemID) { w.selectedFile = i }
 	var more *actionButton
 	more = action("", designIcon("more"), func() {
-		widget.NewPopUpMenu(w.fileMenu(), w.u.Window.Canvas()).ShowAtPosition(fyne.CurrentApp().Driver().AbsolutePositionForObject(more).Add(fyne.NewPos(0, 30)))
+		showActionMenu(w.fileMenu(), w.u.Window.Canvas(), more)
 	})
 	tools := container.NewHBox(action("", designIcon("refresh"), w.refreshFiles), action("", designIcon("upload"), w.upload), action("", designIcon("folder"), w.mkdir), more)
 	back := action("", designIcon("arrow-left"), func() { w.dir.SetText(path.Dir(w.dir.Text)); w.refreshFiles() })

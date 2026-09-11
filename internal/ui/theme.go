@@ -58,28 +58,32 @@ func hex(v uint32) color.NRGBA {
 }
 
 var lightPalette = map[fyne.ThemeColorName]color.NRGBA{
-	theme.ColorNameBackground: hex(0xffffff), theme.ColorNameForeground: hex(0x33445c),
+	theme.ColorNameBackground: hex(0xffffff), theme.ColorNameForeground: hex(0x1d1d1f),
 	theme.ColorNameButton: hex(0xffffff), theme.ColorNameInputBackground: hex(0xffffff),
-	theme.ColorNameHeaderBackground: hex(0xf5f7fa), theme.ColorNameSeparator: hex(0xe1e7ef),
-	theme.ColorNameInputBorder: hex(0xd9e1ec), theme.ColorNamePrimary: hex(0x376ed1),
-	theme.ColorNameSelection: hex(0xe5edfc), theme.ColorNameHover: hex(0xeaf0f8),
-	theme.ColorNameDisabled: hex(0x748399), theme.ColorNamePlaceHolder: hex(0x748399),
-	theme.ColorNameSuccess: hex(0x368361), theme.ColorNameScrollBar: hex(0xd6dfea),
-	colorPanel: hex(0xf5f7fa), colorSoft: hex(0xfafbfd), colorMuted: hex(0x748399),
-	colorTrack: hex(0xe1e8f2), colorMeter: hex(0x789cda), colorMessage: hex(0xeaf0fc), colorSuccessBG: hex(0xedf7f0),
-	"terminalSelection": hex(0x35557b), "actionForeground": hex(0xffffff), "terminalBackground": hex(0x171e29), "terminalForeground": hex(0xd5dce7),
+	theme.ColorNameHeaderBackground: hex(0xf5f5f7), theme.ColorNameSeparator: hex(0xdededf),
+	theme.ColorNameInputBorder: hex(0xd1d1d6), theme.ColorNamePrimary: hex(0x0066cc),
+	theme.ColorNameSelection: hex(0xe3efff), theme.ColorNameHover: hex(0xebebf0),
+	theme.ColorNameFocus:    hex(0xd9eaff),
+	theme.ColorNameDisabled: hex(0x86868b), theme.ColorNamePlaceHolder: hex(0x76767b),
+	theme.ColorNameSuccess: hex(0x1f7a35), theme.ColorNameScrollBar: hex(0xc7c7cc),
+	theme.ColorNameMenuBackground: hex(0xf7f7f8), theme.ColorNameOverlayBackground: hex(0xf7f7f8),
+	colorPanel: hex(0xf5f5f7), colorSoft: hex(0xfafafa), colorMuted: hex(0x6e6e73),
+	colorTrack: hex(0xe5e5ea), colorMeter: hex(0x64a5ed), colorMessage: hex(0xeaf2ff), colorSuccessBG: hex(0xeaf6ed),
+	"terminalSelection": hex(0x35557b), "actionForeground": hex(0xffffff), "actionBackground": hex(0x0066cc), "terminalBackground": hex(0x171e29), "terminalForeground": hex(0xd5dce7),
 }
 var darkPalette = map[fyne.ThemeColorName]color.NRGBA{
-	theme.ColorNameBackground: hex(0x1c2532), theme.ColorNameForeground: hex(0xdce4f0),
-	theme.ColorNameButton: hex(0x1c2532), theme.ColorNameInputBackground: hex(0x1c2532),
-	theme.ColorNameHeaderBackground: hex(0x202a38), theme.ColorNameSeparator: hex(0x354256),
-	theme.ColorNameInputBorder: hex(0x354256), theme.ColorNamePrimary: hex(0x91b6fa),
-	theme.ColorNameSelection: hex(0x2b3e5b), theme.ColorNameHover: hex(0x2e3d51),
-	theme.ColorNameDisabled: hex(0x92a2b9), theme.ColorNamePlaceHolder: hex(0x92a2b9),
-	theme.ColorNameSuccess: hex(0x91caae), theme.ColorNameScrollBar: hex(0x37465b),
-	colorPanel: hex(0x202a38), colorSoft: hex(0x222d3c), colorMuted: hex(0x92a2b9),
-	colorTrack: hex(0x37465b), colorMeter: hex(0x82a7e9), colorMessage: hex(0x2b3e5b), colorSuccessBG: hex(0x263d35),
-	"terminalSelection": hex(0x35557b), "actionForeground": hex(0xffffff), "terminalBackground": hex(0x171e29), "terminalForeground": hex(0xd5dce7),
+	theme.ColorNameBackground: hex(0x1c1c1e), theme.ColorNameForeground: hex(0xf5f5f7),
+	theme.ColorNameButton: hex(0x2c2c2e), theme.ColorNameInputBackground: hex(0x232325),
+	theme.ColorNameHeaderBackground: hex(0x252527), theme.ColorNameSeparator: hex(0x3a3a3c),
+	theme.ColorNameInputBorder: hex(0x48484a), theme.ColorNamePrimary: hex(0x70b7ff),
+	theme.ColorNameSelection: hex(0x253e59), theme.ColorNameHover: hex(0x353537),
+	theme.ColorNameFocus:    hex(0x253e59),
+	theme.ColorNameDisabled: hex(0x98989d), theme.ColorNamePlaceHolder: hex(0x98989d),
+	theme.ColorNameSuccess: hex(0x6dd58c), theme.ColorNameScrollBar: hex(0x545456),
+	theme.ColorNameMenuBackground: hex(0x2c2c2e), theme.ColorNameOverlayBackground: hex(0x2c2c2e),
+	colorPanel: hex(0x252527), colorSoft: hex(0x222224), colorMuted: hex(0xaeaeb2),
+	colorTrack: hex(0x3a3a3c), colorMeter: hex(0x70b7ff), colorMessage: hex(0x26384c), colorSuccessBG: hex(0x243d2b),
+	"terminalSelection": hex(0x35557b), "actionForeground": hex(0xffffff), "actionBackground": hex(0x0066cc), "terminalBackground": hex(0x171e29), "terminalForeground": hex(0xd5dce7),
 }
 
 func (t desktopTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
@@ -115,9 +119,11 @@ func (t desktopTheme) Size(n fyne.ThemeSizeName) float32 {
 	case theme.SizeNameModalBlurRadius:
 		return 0
 	case theme.SizeNameInputRadius, theme.SizeNameButtonRadius:
-		return 5
+		return 7
 	case theme.SizeNameDialogRadius, theme.SizeNamePopupRadius:
-		return 8
+		return 10
+	case theme.SizeNameMenuRadius:
+		return 5
 	case theme.SizeNameInlineIcon:
 		return 18
 	case theme.SizeNameScrollBar:

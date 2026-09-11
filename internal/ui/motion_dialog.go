@@ -80,7 +80,7 @@ func newMotionConfirm(title, confirm, dismiss string, content fyne.CanvasObject,
 	}
 	head := inset(container.NewBorder(nil, nil, headingText(title), action("", designIcon("close"), d.Hide)), 12, 20, 12, 20)
 	footer := inset(container.NewBorder(nil, nil, nil, container.NewCenter(actions), layout.NewSpacer()), 10, 20, 10, 20)
-	body := edge(panel(head, theme.ColorNameBackground, true, 0), panel(footer, colorSoft, true, 0), nil, nil, inset(content, 12, 20, 16, 20))
+	body := edge(panel(head, theme.ColorNameBackground, false, 0), panel(footer, colorSoft, false, 0), nil, nil, inset(content, 12, 20, 16, 20))
 	d.popup = newMotionPopup(panel(body, theme.ColorNameBackground, false, 0), parent.Canvas())
 	return d
 }

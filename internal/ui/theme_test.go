@@ -5,10 +5,36 @@ import (
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
 	"github.com/GHOSTEDDIE/nexshell/internal/terminal"
+	"image/color"
 	"io"
+	"math"
 	"strings"
 	"testing"
 )
+
+func TestSharedThemeTextContrast(t *testing.T) {
+	luminance := func(c color.Color) float64 {
+		r, g, b, _ := c.RGBA()
+		linear := func(v uint32) float64 {
+			n := float64(v) / 65535
+			if n <= .04045 {
+				return n / 12.92
+			}
+			return math.Pow((n+.055)/1.055, 2.4)
+		}
+		return .2126*linear(r) + .7152*linear(g) + .0722*linear(b)
+	}
+	for _, dark := range []bool{false, true} {
+		th := NewTheme(dark)
+		for _, pair := range [][2]fyne.ThemeColorName{{theme.ColorNameForeground, theme.ColorNameBackground}, {colorMuted, colorSoft}, {theme.ColorNameSuccess, colorSuccessBG}, {"actionForeground", "actionBackground"}, {theme.ColorNameForeground, theme.ColorNameMenuBackground}, {theme.ColorNameForeground, theme.ColorNameSelection}} {
+			a, b := luminance(th.Color(pair[0], theme.VariantLight)), luminance(th.Color(pair[1], theme.VariantLight))
+			ratio := (max(a, b) + .05) / (min(a, b) + .05)
+			if ratio < 4.5 {
+				t.Errorf("dark=%v colors=%v contrast=%.2f", dark, pair, ratio)
+			}
+		}
+	}
+}
 
 func TestAppearanceRestoresIndependentOfSystemTheme(t *testing.T) {
 	app := test.NewApp()

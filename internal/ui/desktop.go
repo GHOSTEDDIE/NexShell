@@ -41,7 +41,7 @@ func (u *App) connectionsPane() fyne.CanvasObject {
 		row.connectHost = func() { u.connect(h) }
 		row.onMenu = func(pos fyne.Position) {
 			u.selected = h.ID
-			widget.NewPopUpMenu(fyne.NewMenu("", fyne.NewMenuItem("连接", func() { u.connect(h) }), fyne.NewMenuItem("编辑", func() { u.editHost(&h) }), fyne.NewMenuItem("删除", u.deleteHost)), u.Window.Canvas()).ShowAtPosition(pos)
+			showContextMenu(fyne.NewMenu("", fyne.NewMenuItem("连接", func() { u.connect(h) }), fyne.NewMenuItem("编辑", func() { u.editHost(&h) }), fyne.NewMenuItem("删除", u.deleteHost)), u.Window.Canvas(), pos)
 		}
 	})
 	u.homeList.HideSeparators = true
@@ -88,14 +88,14 @@ func (u *App) desktop(side fyne.CanvasObject) fyne.CanvasObject {
 	return edge(sized(panel(inset(toolbar, 6, 16, 6, 16), colorSoft, false, 0), 0, 44), sized(panel(inset(footer, 0, 18, 0, 18), theme.ColorNameBackground, true, 0), 0, 28), nil, nil, u.desktopBody)
 }
 func (u *App) toggleAssistant() {
-	u.assistantVisible = !u.assistantVisible
-	obj := u.desktopBody.Objects[2]
-	if u.assistantVisible {
-		obj.Show()
-	} else {
-		obj.Hide()
+	if u.closing {
+		return
 	}
-	u.desktopBody.Refresh()
+	if u.assistantSlide == nil {
+		u.assistantSlide = newAssistantSlide(u)
+	}
+	u.assistantVisible = !u.assistantVisible
+	u.assistantSlide.transition()
 }
 
 type workbenchLayout struct{ u *App }
@@ -103,7 +103,11 @@ type workbenchLayout struct{ u *App }
 func (l workbenchLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(1100, 580) }
 func (l workbenchLayout) Layout(o []fyne.CanvasObject, s fyne.Size) {
 
-	left, center, right := fitWorkbenchWidths(s.Width, l.u.leftWidth, l.u.rightWidth, l.u.assistantVisible)
+	closedLeft, closedCenter, _ := fitWorkbenchWidths(s.Width, l.u.leftWidth, l.u.rightWidth, false)
+	openLeft, openCenter, right := fitWorkbenchWidths(s.Width, l.u.leftWidth, l.u.rightWidth, true)
+	reveal := l.u.assistantReveal()
+	left := closedLeft + (openLeft-closedLeft)*reveal
+	center := closedCenter + (openCenter-closedCenter)*reveal
 	o[0].Move(fyne.NewPos(0, 0))
 	o[0].Resize(fyne.NewSize(left, s.Height))
 	o[3].Move(fyne.NewPos(left, 0))
@@ -111,15 +115,11 @@ func (l workbenchLayout) Layout(o []fyne.CanvasObject, s fyne.Size) {
 	centerX := left + dividerSize
 	o[1].Move(fyne.NewPos(centerX, 0))
 	o[1].Resize(fyne.NewSize(center, s.Height))
-	if l.u.assistantVisible {
-		o[4].Show()
-		o[4].Move(fyne.NewPos(centerX+center, 0))
+	if l.u.assistantVisible || (l.u.assistantSlide != nil && l.u.assistantSlide.animation != nil) {
 		o[4].Resize(fyne.NewSize(dividerSize, s.Height))
-		o[2].Move(fyne.NewPos(centerX+center+dividerSize, 0))
 		o[2].Resize(fyne.NewSize(right, s.Height))
-	} else {
-		o[4].Hide()
 	}
+	l.u.positionAssistant()
 
 }
 func (u *App) refreshDesktopState() {

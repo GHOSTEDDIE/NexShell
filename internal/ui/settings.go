@@ -209,7 +209,7 @@ func (u *App) settingsDialog(page string) {
 	modelsButton.leading = true
 	nav := sized(panel(inset(container.NewVBox(appearanceButton, modelsButton), 18, 10, 18, 10), colorPanel, false, 0), 170, 0)
 	head := container.NewBorder(nil, nil, container.NewHBox(widget.NewIcon(designIcon("settings")), textUI("设置", sizeTitle, theme.ColorNameForeground, true), metaText("NexShell")), action("", designIcon("close"), closePopup))
-	whole := edge(sized(panel(inset(head, 10, 24, 10, 24), theme.ColorNameBackground, true, 0), 0, 58), sized(panel(inset(footer, 10, 24, 10, 24), colorSoft, true, 0), 0, 62), nav, nil, content)
+	whole := edge(sized(panel(inset(head, 10, 24, 10, 24), theme.ColorNameBackground, false, 0), 0, 58), sized(panel(inset(footer, 10, 24, 10, 24), colorSoft, false, 0), 0, 62), nav, nil, content)
 	popup = newMotionPopup(whole, u.Window.Canvas())
 	u.settingsPopup = popup
 	u.settingsPopup.Resize(fyne.NewSize(min(860, u.Window.Canvas().Size().Width-40), min(665, u.Window.Canvas().Size().Height-40)))
@@ -243,13 +243,13 @@ func (u *App) setTerminalSize(size float32) {
 	}
 }
 func themePreview(mode string) fyne.Resource {
-	bg, bar, lines := "#fff", "#eff2f7", "#d6deeb"
+	bg, bar, lines := "#fff", "#f5f5f7", "#d1d1d6"
 	if mode == "dark" {
-		bg, bar, lines = "#273345", "#303e52", "#526580"
+		bg, bar, lines = "#1c1c1e", "#2c2c2e", "#636366"
 	}
 	extra := ""
 	if mode == "system" {
-		extra = `<path d="M80 0h80v75H80z" fill="#273345"/>`
+		extra = `<path d="M80 0h80v75H80z" fill="#1c1c1e"/>`
 	}
 	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="75"><rect width="160" height="75" fill="%s"/><rect width="160" height="12" fill="%s"/>%s<path d="M8 25h22M8 34h22M8 43h22" stroke="%s" stroke-width="4"/><rect x="45" y="22" width="106" height="44" rx="2" fill="#171e29"/></svg>`, bg, bar, extra, lines)
 	return fyne.NewStaticResource("preview-"+mode+".svg", []byte(svg))

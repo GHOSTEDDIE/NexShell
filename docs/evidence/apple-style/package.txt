@@ -1,0 +1,6 @@
+# github.com/GHOSTEDDIE/nexshell/internal/nativefiles
+picker_darwin.m:45:32: warning: 'allowedFileTypes' is deprecated: first deprecated in macOS 12.0 - Use -allowedContentTypes instead [-Wdeprecated-declarations]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSSavePanel.h:289:49: note: 'allowedFileTypes' has been explicitly marked deprecated here
+# github.com/GHOSTEDDIE/nexshell/cmd/nexshell
+ld: warning: ignoring duplicate libraries: '-lobjc'
+dist/NexShell.app: replacing existing signature

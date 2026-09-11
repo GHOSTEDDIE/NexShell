@@ -45,6 +45,9 @@ func (u *App) quit() {
 		return
 	}
 	u.closing = true
+	if u.assistantSlide != nil {
+		u.assistantSlide.stop()
+	}
 	u.status.SetText("正在保存任务与关闭连接…")
 	u.cancel()
 	u.Agent.Stop()

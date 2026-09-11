@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/GHOSTEDDIE/nexshell/internal/platforminput"
 	"time"
@@ -9,6 +10,8 @@ import (
 
 const popupEnterDuration = 180 * time.Millisecond
 const popupExitDuration = 120 * time.Millisecond
+
+func motionEaseOut(t float32) float32 { v := 1 - t; return 1 - v*v*v }
 
 func motionEnabled() bool {
 	app := fyne.CurrentApp()
@@ -27,6 +30,7 @@ type motionPopup struct {
 }
 
 func newMotionPopup(content fyne.CanvasObject, canvas fyne.Canvas) *motionPopup {
+	content = panel(inset(content, 4, 4, 4, 4), theme.ColorNameBackground, true, theme.Size(theme.SizeNameDialogRadius))
 	return &motionPopup{PopUp: widget.NewModalPopUp(content, canvas), enabled: motionEnabled, startAnimation: func(a *fyne.Animation) { a.Start() }}
 }
 func (p *motionPopup) stop() {
@@ -95,7 +99,7 @@ func (p *motionPopup) animate(exit bool, done func()) {
 	}
 	move(0)
 	animation := fyne.NewAnimation(duration, func(progress float32) { fyne.Do(func() { move(progress) }) })
-	animation.Curve = func(t float32) float32 { v := 1 - t; return 1 - v*v*v }
+	animation.Curve = motionEaseOut
 	p.animation = animation
 	p.startAnimation(animation)
 }

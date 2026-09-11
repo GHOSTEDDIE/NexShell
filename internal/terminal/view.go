@@ -26,8 +26,9 @@ type terminalResize struct {
 }
 
 type View struct {
-	resizeRequests chan terminalResize
-	OnFocus        func()
+	resizeRequests  chan terminalResize
+	OnFocus         func()
+	ShowContextMenu func(*fyne.Menu, fyne.Position)
 	widget.BaseWidget
 	Core                         *Core
 	OnResize                     func(int, int)
@@ -299,7 +300,11 @@ func (v *View) MouseDown(e *desktop.MouseEvent) {
 	}
 	if e.Button == desktop.MouseButtonSecondary {
 		menu := fyne.NewMenu("", fyne.NewMenuItem("复制", v.Copy), fyne.NewMenuItem("粘贴", func() { text := fyne.CurrentApp().Clipboard().Content(); v.enqueue(func() { v.Core.Text(text, true) }) }))
-		widget.ShowPopUpMenuAtPosition(menu, fyne.CurrentApp().Driver().CanvasForObject(v), e.AbsolutePosition)
+		if v.ShowContextMenu != nil {
+			v.ShowContextMenu(menu, e.AbsolutePosition)
+		} else {
+			widget.ShowPopUpMenuAtPosition(menu, fyne.CurrentApp().Driver().CanvasForObject(v), e.AbsolutePosition)
+		}
 	}
 }
 func (v *View) MouseUp(e *desktop.MouseEvent) {

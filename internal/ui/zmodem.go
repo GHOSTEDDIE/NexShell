@@ -77,6 +77,7 @@ func (w *workspace) newTerminal(session *remote.TerminalSession) *terminal.View 
 	})
 	w.routers = append(w.routers, router)
 	view := terminal.NewView(router, router, func(err error) { w.u.status.SetText(w.host.Name + "：" + err.Error()) })
+	view.ShowContextMenu = func(menu *fyne.Menu, pos fyne.Position) { showContextMenu(menu, w.u.Window.Canvas(), pos) }
 	id := w.u.terminalsDesktop.Register(w.host.ID, router, func() string { return strings.Join(view.Core.Lines(), "\n") }, func() bool {
 		if w.ctx.Err() != nil {
 			return false

@@ -1,0 +1,7 @@
+# github.com/GHOSTEDDIE/nexshell/internal/ui.test
+ld: warning: ignoring duplicate libraries: '-lobjc'
+--- FAIL: TestAssistantSlideInterruptResizeAndReducedMotion (0.00s)
+    assistant_motion_test.go:53: center jumped to final width at transition start
+FAIL
+FAIL	github.com/GHOSTEDDIE/nexshell/internal/ui	1.462s
+FAIL

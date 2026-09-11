@@ -227,6 +227,10 @@ func (r *actionRenderer) MinSize() fyne.Size {
 func (r *actionRenderer) Layout(s fyne.Size) {
 	r.bg.Move(fyne.NewPos(0, 0))
 	r.bg.Resize(s)
+	if r.b.tab && !r.b.document {
+		r.bg.Move(fyne.NewPos(2, 4))
+		r.bg.Resize(fyne.NewSize(max(0, s.Width-4), max(0, s.Height-8)))
+	}
 	if r.b.Text == "" && !r.b.tab {
 		side := min(s.Width, s.Height)
 		r.bg.Resize(fyne.NewSize(side, side))
@@ -250,8 +254,12 @@ func (r *actionRenderer) Layout(s fyne.Size) {
 	}
 	r.text.Move(fyne.NewPos(x, (s.Height-r.text.MinSize().Height)/2))
 	r.text.Resize(r.text.MinSize())
-	r.line.Move(fyne.NewPos(10, s.Height-2))
-	r.line.Resize(fyne.NewSize(max(0, s.Width-20), 2))
+	lineInset := float32(10)
+	if r.b.tab {
+		lineInset = 8
+	}
+	r.line.Move(fyne.NewPos(lineInset, s.Height-2))
+	r.line.Resize(fyne.NewSize(max(0, s.Width-2*lineInset), 2))
 }
 func (r *actionRenderer) Refresh() {
 	b := r.b
@@ -261,7 +269,7 @@ func (r *actionRenderer) Refresh() {
 	r.text.Color = themedColor(theme.ColorNameForeground)
 	r.bg.FillColor = color.Transparent
 	r.bg.StrokeWidth = 0
-	r.bg.CornerRadius = 5
+	r.bg.CornerRadius = theme.Size(theme.SizeNameButtonRadius)
 	r.line.FillColor = color.Transparent
 	if b.outlined {
 		r.bg.FillColor = themedColor(theme.ColorNameBackground)
@@ -273,21 +281,18 @@ func (r *actionRenderer) Refresh() {
 	}
 	if b.selected {
 		r.text.Color = themedColor(theme.ColorNamePrimary)
-		if b.document {
-			r.text.Color = themedColor(theme.ColorNameForeground)
-		}
 		if b.tab {
-			if b.document {
-				r.bg.FillColor = themedColor(theme.ColorNameBackground)
-			} else {
-				r.line.FillColor = themedColor(theme.ColorNamePrimary)
-			}
+			// Keep the selected tab quiet and structural: the accent underline
+			// carries selection instead of a filled pill or border.
+			r.bg.FillColor = color.Transparent
+			r.bg.StrokeWidth = 0
+			r.line.FillColor = themedColor(theme.ColorNamePrimary)
 		} else {
 			r.bg.FillColor = themedColor(theme.ColorNameSelection)
 		}
 	}
 	if b.primary {
-		r.bg.FillColor = hex(0x376ed1)
+		r.bg.FillColor = themedColor("actionBackground")
 		r.text.Color = color.White
 	}
 	if b.focus {

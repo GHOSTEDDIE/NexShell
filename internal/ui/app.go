@@ -37,6 +37,7 @@ type App struct {
 	sideTabs                       *tabView
 	desktopBody                    *fyne.Container
 	assistantVisible               bool
+	assistantSlide                 *assistantSlide
 	assistantContext, sessionCount *textView
 	modelSelect                    *widget.Select
 	conversationView               *conversationView
