@@ -298,21 +298,40 @@ func (w *workspace) openSelected() {
 func (w *workspace) transfer(local, remotePath string, upload, resume bool, exclusive ...bool) {
 	ctx, cancel := context.WithCancel(w.ctx)
 	label := widget.NewLabel(path.Base(remotePath))
+	label.Truncation = fyne.TextTruncateEllipsis
 	progress := widget.NewLabel("等待传输")
-	row := container.NewBorder(nil, nil, label, widget.NewButton("取消", cancel), progress)
+	progress.Alignment = fyne.TextAlignTrailing
+	bar := widget.NewProgressBar()
+	bar.TextFormatter = func() string { return "" }
+	cancelButton := widget.NewButton("取消", cancel)
+	row := container.NewVBox(
+		container.NewBorder(nil, nil, nil, cancelButton, label),
+		container.NewBorder(nil, nil, nil, progress, bar),
+	)
 	w.transfers.Add(row)
-	if upload {
-		w.bottomTabs.Select(w.bottomTabs.Items[1])
-	}
+	w.bottomTabs.Select(w.bottomTabs.Items[1])
 	go func() {
 		defer cancel()
 		var last time.Time
-		progressFn := func(n int64) {
-			if time.Since(last) < 100*time.Millisecond {
+		var transferred, total int64
+		finished := false
+		progressFn := func(n, size int64) {
+			transferred, total = n, size
+			if !last.IsZero() && time.Since(last) < 100*time.Millisecond && n < size {
 				return
 			}
 			last = time.Now()
-			fyne.Do(func() { progress.SetText(fmt.Sprintf("%d 字节", n)) })
+			fyne.Do(func() {
+				if finished {
+					return
+				}
+				bar.SetValue(transferProgressValue(n, size))
+				if size > 0 && n >= size {
+					progress.SetText("校验中 · " + transferProgressText(n, size))
+				} else {
+					progress.SetText(transferProgressText(n, size))
+				}
+			})
 		}
 		var err error
 		if len(exclusive) > 0 && exclusive[0] {
@@ -320,11 +339,27 @@ func (w *workspace) transfer(local, remotePath string, upload, resume bool, excl
 		} else {
 			err = w.u.Manager.Transfer(ctx, w.host.ID, local, remotePath, upload, resume, progressFn)
 		}
+		wasCanceled := ctx.Err() != nil
+		timedOut := !wasCanceled && isTimeoutError(err)
+		if timedOut {
+			w.u.Manager.Disconnect(w.host.ID)
+		}
 		fyne.Do(func() {
+			finished = true
+			cancelButton.Disable()
 			if err != nil {
-				progress.SetText("失败：" + err.Error())
+				if wasCanceled {
+					progress.SetText("已取消 · " + transferProgressText(transferred, total))
+				} else if timedOut {
+					progress.SetText("超时 · " + transferProgressText(transferred, total))
+					showMotionInformation("传输超时（timeout）", path.Base(remotePath)+" 传输超时，连接已断开。请检查网络后重试。", w.u.Window)
+				} else {
+					progress.SetText("失败：" + err.Error())
+					showMotionInformation("传输失败", err.Error(), w.u.Window)
+				}
 			} else {
-				progress.SetText("已完成")
+				bar.SetValue(1)
+				progress.SetText("已完成 · " + transferSize(total) + " / " + transferSize(total) + " · 100%")
 				w.refreshFiles()
 			}
 		})

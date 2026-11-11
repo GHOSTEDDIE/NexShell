@@ -142,12 +142,24 @@ func TestLinuxLab(t *testing.T) {
 		if _, e = m.WriteFile(ctx, h.ID, "/tmp/fixture/payload", "new", data[:200]); e != nil {
 			t.Fatal(e)
 		}
-		if e = m.Transfer(ctx, h.ID, local, "/tmp/fixture/payload", true, true, nil); e != nil {
+		var uploadProgress [][2]int64
+		if e = m.Transfer(ctx, h.ID, local, "/tmp/fixture/payload", true, true, func(n, total int64) {
+			uploadProgress = append(uploadProgress, [2]int64{n, total})
+		}); e != nil {
 			t.Fatal(e)
 		}
+		if len(uploadProgress) == 0 || uploadProgress[0] != [2]int64{200, int64(len(data))} || uploadProgress[len(uploadProgress)-1] != [2]int64{int64(len(data)), int64(len(data))} {
+			t.Fatalf("upload progress = %v", uploadProgress)
+		}
 		dest := filepath.Join(t.TempDir(), "received")
-		if e = m.Transfer(ctx, h.ID, dest, "/tmp/fixture/payload", false, false, nil); e != nil {
+		var downloadProgress [][2]int64
+		if e = m.Transfer(ctx, h.ID, dest, "/tmp/fixture/payload", false, false, func(n, total int64) {
+			downloadProgress = append(downloadProgress, [2]int64{n, total})
+		}); e != nil {
 			t.Fatal(e)
+		}
+		if len(downloadProgress) == 0 || downloadProgress[0] != [2]int64{0, int64(len(data))} || downloadProgress[len(downloadProgress)-1] != [2]int64{int64(len(data)), int64(len(data))} {
+			t.Fatalf("download progress = %v", downloadProgress)
 		}
 		got, _ := os.ReadFile(dest)
 		if !bytes.Equal(got, data) {

@@ -21,6 +21,7 @@ case "$target_os" in
     codesign --force --deep --sign - "$bundle"
     ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/NexShell-darwin-$target_arch.zip"
     hdiutil create -volname NexShell -srcfolder "$bundle" -ov -format UDZO "dist/NexShell-darwin-$target_arch.dmg" >/dev/null
+    (cd dist && shasum -a 256 "NexShell-darwin-$target_arch.zip" "NexShell-darwin-$target_arch.dmg" > SHA256SUMS)
     ;;
   windows)
     cp "bin/$binary_name" "dist/NexShell-windows-$target_arch.exe"

@@ -167,8 +167,9 @@ func (m *Manager) WriteFile(ctx context.Context, host, p, expected string, b []b
 type contextReader struct {
 	ctx      context.Context
 	r        io.Reader
-	progress func(int64)
+	progress func(int64, int64)
 	n        int64
+	total    int64
 }
 
 func (r *contextReader) Read(b []byte) (int, error) {
@@ -178,26 +179,82 @@ func (r *contextReader) Read(b []byte) (int, error) {
 	n, e := r.r.Read(b)
 	r.n += int64(n)
 	if r.progress != nil {
-		r.progress(r.n)
+		r.progress(r.n, r.total)
 	}
 	return n, e
 }
-func (m *Manager) Transfer(ctx context.Context, host, local, remote string, upload, resume bool, progress func(int64)) error {
+
+type contextWriter struct {
+	ctx context.Context
+	w   io.Writer
+}
+
+const transferProbeBytes int64 = 1 << 20
+const concurrentTransferThreshold = 30 * time.Millisecond
+
+func (w contextWriter) Write(b []byte) (int, error) {
+	if err := w.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return w.w.Write(b)
+}
+
+func hashFile(ctx context.Context, file io.Reader, dst io.Writer) (int64, error) {
+	if remoteFile, ok := file.(*sftp.File); ok {
+		start := time.Now()
+		n, err := io.CopyN(dst, &contextReader{ctx: ctx, r: remoteFile}, transferProbeBytes)
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return n, nil
+		}
+		if err != nil {
+			return n, err
+		}
+		if time.Since(start) >= concurrentTransferThreshold {
+			more, err := remoteFile.WriteTo(contextWriter{ctx: ctx, w: dst})
+			return n + more, err
+		}
+		more, err := io.Copy(dst, &contextReader{ctx: ctx, r: remoteFile})
+		return n + more, err
+	}
+	return io.Copy(dst, &contextReader{ctx: ctx, r: file})
+}
+
+func uploadFile(dst *sftp.File, src io.Reader, expected int64) (int64, error) {
+	probe := min(expected, transferProbeBytes)
+	start := time.Now()
+	n, err := io.CopyN(dst, src, probe)
+	if err != nil || n == expected {
+		return n, err
+	}
+	if time.Since(start) >= concurrentTransferThreshold {
+		more, err := dst.ReadFromWithConcurrency(src, 0)
+		return n + more, err
+	}
+	more, err := io.Copy(dst, src)
+	return n + more, err
+}
+
+func (m *Manager) Transfer(ctx context.Context, host, local, remote string, upload, resume bool, progress func(int64, int64)) error {
 	return m.transfer(ctx, host, local, remote, upload, resume, false, progress)
 }
 
 // UploadNew never overwrites a file created after the upload was queued.
-func (m *Manager) UploadNew(ctx context.Context, host, local, remote string, progress func(int64)) error {
+func (m *Manager) UploadNew(ctx context.Context, host, local, remote string, progress func(int64, int64)) error {
 	return m.transfer(ctx, host, local, remote, true, false, true, progress)
 }
-func (m *Manager) transfer(ctx context.Context, host, local, remote string, upload, resume, exclusive bool, progress func(int64)) error {
+func (m *Manager) transfer(ctx context.Context, host, local, remote string, upload, resume, exclusive bool, progress func(int64, int64)) error {
 	c, err := m.SFTP(ctx, host)
 	if err != nil {
 		return err
 	}
 	defer c.Close()
+	return transferWithClient(ctx, c, local, remote, upload, resume, exclusive, progress)
+}
+
+func transferWithClient(ctx context.Context, c *sftp.Client, local, remote string, upload, resume, exclusive bool, progress func(int64, int64)) error {
 	stop := context.AfterFunc(ctx, func() { c.Close() })
 	defer stop()
+	var err error
 	var src io.ReadSeekCloser
 	var dst interface {
 		io.WriteCloser
@@ -272,6 +329,7 @@ func (m *Manager) transfer(ctx context.Context, host, local, remote string, uplo
 	if offset > total {
 		return errors.New("续传目标比源文件大")
 	}
+	sourceHash := sha256.New()
 	if offset > 0 {
 		// Compare the complete existing prefix, not just length or modification time.
 		var existing io.ReadCloser
@@ -283,16 +341,16 @@ func (m *Manager) transfer(ctx context.Context, host, local, remote string, uplo
 		if err != nil {
 			return err
 		}
-		a, b := sha256.New(), sha256.New()
-		_, err = io.CopyN(a, src, offset)
+		prefixHash := sha256.New()
+		_, err = io.CopyN(sourceHash, src, offset)
 		if err == nil {
-			_, err = io.CopyN(b, existing, offset)
+			_, err = io.CopyN(prefixHash, existing, offset)
 		}
 		existing.Close()
 		if err != nil {
 			return err
 		}
-		if !equalHash(a.Sum(nil), b.Sum(nil)) {
+		if !equalHash(sourceHash.Sum(nil), prefixHash.Sum(nil)) {
 			return errors.New("续传内容不一致，未覆盖已有文件")
 		}
 	}
@@ -302,20 +360,57 @@ func (m *Manager) transfer(ctx context.Context, host, local, remote string, uplo
 	if _, err = dst.Seek(offset, io.SeekStart); err != nil {
 		return err
 	}
-	_, err = io.Copy(dst, &contextReader{ctx: ctx, r: src, n: offset, progress: progress})
+	reportedProgress := progress
+	if upload && total > 0 && progress != nil {
+		reportedProgress = func(n, size int64) {
+			if n >= size {
+				n = size - 1
+			}
+			progress(n, size)
+		}
+	}
+	if reportedProgress != nil {
+		reportedProgress(offset, total)
+	}
+	reader := io.TeeReader(&contextReader{ctx: ctx, r: src, n: offset, total: total, progress: reportedProgress}, sourceHash)
+	var copied int64
+	if upload {
+		remoteFile := dst.(*sftp.File)
+		copied, err = uploadFile(remoteFile, reader, total-offset)
+		if err != nil {
+			if safeOffset, seekErr := remoteFile.Seek(0, io.SeekCurrent); seekErr == nil {
+				_ = remoteFile.Truncate(safeOffset)
+			}
+		}
+	} else {
+		copied, err = io.Copy(dst, reader)
+	}
 	if err != nil {
 		return err
+	}
+	if copied != total-offset {
+		return errors.New("源文件在传输过程中大小发生变化")
 	}
 	if err = dst.Close(); err != nil {
 		return err
 	}
-	if _, err = src.Seek(0, io.SeekStart); err != nil {
-		return err
+	if progress != nil {
+		progress(total, total)
 	}
-	sourceHash := sha256.New()
-	if _, err = io.Copy(sourceHash, &contextReader{ctx: ctx, r: src}); err != nil {
-		return err
+	type hashResult struct {
+		sum []byte
+		err error
 	}
+	sourceDone := make(chan hashResult, 1)
+	go func() {
+		if _, seekErr := src.Seek(0, io.SeekStart); seekErr != nil {
+			sourceDone <- hashResult{err: seekErr}
+			return
+		}
+		hash := sha256.New()
+		_, hashErr := hashFile(ctx, src, hash)
+		sourceDone <- hashResult{sum: hash.Sum(nil), err: hashErr}
+	}()
 	var check io.ReadCloser
 	if upload {
 		check, err = c.Open(remote)
@@ -323,14 +418,23 @@ func (m *Manager) transfer(ctx context.Context, host, local, remote string, uplo
 		check, err = os.Open(local)
 	}
 	if err != nil {
+		<-sourceDone
 		return err
 	}
 	defer check.Close()
 	targetHash := sha256.New()
-	if _, err = io.Copy(targetHash, &contextReader{ctx: ctx, r: check}); err != nil {
-		return err
+	_, targetErr := hashFile(ctx, check, targetHash)
+	sourceResult := <-sourceDone
+	if sourceResult.err != nil {
+		return sourceResult.err
 	}
-	if !equalHash(sourceHash.Sum(nil), targetHash.Sum(nil)) {
+	if targetErr != nil {
+		return targetErr
+	}
+	if !equalHash(sourceResult.sum, sourceHash.Sum(nil)) {
+		return errors.New("源文件在传输过程中发生变化")
+	}
+	if !equalHash(sourceResult.sum, targetHash.Sum(nil)) {
 		return errors.New("传输后的文件校验不一致")
 	}
 	return nil

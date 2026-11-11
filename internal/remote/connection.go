@@ -134,6 +134,9 @@ func (m *Manager) connect(ctx context.Context, id string, seen map[string]bool) 
 	lock := l.(*sync.Mutex)
 	lock.Lock()
 	defer lock.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	if m.closed {
 		m.mu.Unlock()
@@ -150,6 +153,10 @@ func (m *Manager) connect(ctx context.Context, id string, seen map[string]bool) 
 	addr := net.JoinHostPort(h.Address, strconv.Itoa(h.Port))
 	auth, cleanup, err := m.auth(ctx, h)
 	if err != nil {
+		return nil, err
+	}
+	if err = ctx.Err(); err != nil {
+		cleanup()
 		return nil, err
 	}
 	success := false
@@ -195,6 +202,9 @@ func (m *Manager) connect(ctx context.Context, id string, seen map[string]bool) 
 		c, err = cd.DialContext(ctx, "tcp", addr)
 	}
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		return nil, err
 	}
 	c.SetDeadline(time.Now().Add(20 * time.Second))
@@ -203,11 +213,23 @@ func (m *Manager) connect(ctx context.Context, id string, seen map[string]bool) 
 	stop()
 	if err != nil {
 		c.Close()
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, err
+	}
+	if err = ctx.Err(); err != nil {
+		cc.Close()
 		return nil, err
 	}
 	c.SetDeadline(time.Time{})
 	client := ssh.NewClient(cc, ch, req)
 	m.mu.Lock()
+	if err = ctx.Err(); err != nil {
+		m.mu.Unlock()
+		client.Close()
+		return nil, err
+	}
 	if m.closed {
 		m.mu.Unlock()
 		client.Close()

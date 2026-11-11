@@ -194,7 +194,9 @@ func (u *App) connect(h domain.Host) {
 	u.connecting[h.ID] = true
 	u.status.SetText("正在连接 " + h.Name)
 	go func() {
-		s, e := u.Manager.Terminal(u.ctx, h.ID, 24, 80)
+		s, e := connectTerminalWithin(u.ctx, activeConnectionTimeout, func(ctx context.Context) (*remote.TerminalSession, error) {
+			return u.Manager.Terminal(ctx, h.ID, 24, 80)
+		}, func() { u.Manager.Disconnect(h.ID) })
 		fyne.Do(func() {
 			delete(u.connecting, h.ID)
 			if u.closing {
@@ -215,10 +217,16 @@ func (u *App) connect(h domain.Host) {
 							}
 						}
 					}, u.Window)
+				} else if isTimeoutError(e) {
+					showMotionInformation("连接超时（timeout）", h.Name+" 连接已超时并断开。主动连接最长等待 10 秒，请检查地址、端口和网络。", u.Window)
 				} else {
-					u.error(e)
+					showMotionInformation("连接失败", e.Error(), u.Window)
 				}
-				u.status.SetText("连接失败")
+				if isTimeoutError(e) {
+					u.status.SetText("连接超时")
+				} else {
+					u.status.SetText("连接失败")
+				}
 				return
 			}
 			ws := u.newWorkspace(h, s)

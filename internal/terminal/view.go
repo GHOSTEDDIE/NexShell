@@ -19,6 +19,7 @@ import (
 )
 
 const DefaultFontSize float32 = 12
+const scrollbarWidth float32 = 12
 
 type terminalResize struct {
 	rows, cols int
@@ -39,6 +40,9 @@ type View struct {
 	cellSize                     fyne.Size
 	cols, rows                   int
 	offset                       int
+	scrollRemainder              float32
+	scrollbarDragging            bool
+	scrollbarDragOffset          float32
 	focused                      bool
 	selectionStart, selectionEnd int
 	selecting                    bool
@@ -156,7 +160,7 @@ func (v *View) SetFontSize(size float32) {
 }
 func (v *View) MinSize() fyne.Size { return fyne.NewSize(240, 150) }
 func (v *View) Resize(size fyne.Size) {
-	cols := max(2, int(size.Width/v.cellSize.Width))
+	cols := max(2, int((size.Width-scrollbarWidth)/v.cellSize.Width))
 	rows := max(2, int(size.Height/v.cellSize.Height))
 	if cols != v.cols || rows != v.rows {
 		v.clearSelection()
@@ -283,6 +287,20 @@ func (v *View) position(p fyne.Position) int {
 func (v *View) Tapped(e *fyne.PointEvent) { fyne.CurrentApp().Driver().CanvasForObject(v).Focus(v) }
 func (v *View) MouseDown(e *desktop.MouseEvent) {
 	v.Tapped(&fyne.PointEvent{Position: e.Position})
+	if e.Button == desktop.MouseButtonPrimary && v.overScrollbar(e.Position.X) {
+		s := v.Core.Snapshot(v.offset)
+		if s.History > 0 {
+			v.scrollbarDragging = true
+			top, height := scrollbarThumb(s.History, v.rows, v.offset, v.Size().Height)
+			v.scrollbarDragOffset = height / 2
+			if e.Position.Y >= top && e.Position.Y <= top+height {
+				v.scrollbarDragOffset = e.Position.Y - top
+			} else {
+				v.scrollbarTo(e.Position.Y)
+			}
+			return
+		}
+	}
 	if v.Core.MouseTracking() && e.Modifier&fyne.KeyModifierShift == 0 {
 		mouse := v.mouseAt(e.Position)
 		if e.Button == desktop.MouseButtonSecondary {
@@ -308,6 +326,10 @@ func (v *View) MouseDown(e *desktop.MouseEvent) {
 	}
 }
 func (v *View) MouseUp(e *desktop.MouseEvent) {
+	if v.scrollbarDragging {
+		v.scrollbarDragging = false
+		return
+	}
 	if !v.selecting && v.Core.MouseTracking() {
 		mouse := v.mouseAt(e.Position)
 		v.enqueue(func() { v.Core.Mouse(uv.MouseReleaseEvent(mouse)) })
@@ -315,6 +337,10 @@ func (v *View) MouseUp(e *desktop.MouseEvent) {
 	v.selecting = false
 }
 func (v *View) Dragged(e *fyne.DragEvent) {
+	if v.scrollbarDragging {
+		v.scrollbarTo(e.Position.Y)
+		return
+	}
 	if !v.selecting && v.Core.MouseTracking() {
 		mouse := v.mouseAt(e.Position)
 		v.enqueue(func() { v.Core.Mouse(uv.MouseMotionEvent(mouse)) })
@@ -325,9 +351,9 @@ func (v *View) Dragged(e *fyne.DragEvent) {
 		v.Refresh()
 	}
 }
-func (v *View) DragEnd() { v.selecting = false }
+func (v *View) DragEnd() { v.selecting = false; v.scrollbarDragging = false }
 func (v *View) Scrolled(e *fyne.ScrollEvent) {
-	if v.Core.MouseTracking() && v.modifier&uv.ModShift == 0 {
+	if v.Core.MouseTracking() && v.modifier&uv.ModShift == 0 && (!v.overScrollbar(e.Position.X) || v.Core.Snapshot(v.offset).History == 0) {
 		mouse := v.mouseAt(e.Position)
 		mouse.Button = uv.MouseWheelDown
 		if e.Scrolled.DY > 0 {
@@ -338,9 +364,47 @@ func (v *View) Scrolled(e *fyne.ScrollEvent) {
 	}
 	v.clearSelection()
 	s := v.Core.Snapshot(v.offset)
-	v.offset = max(0, min(s.History, v.offset+int(e.Scrolled.DY)*3))
+	v.scrollRemainder += e.Scrolled.DY * 3 / v.cellSize.Height
+	lines := int(math.Trunc(float64(v.scrollRemainder)))
+	limit := max(1, v.rows/2)
+	if lines > limit || lines < -limit {
+		lines = max(-limit, min(limit, lines))
+		v.scrollRemainder = 0
+	} else {
+		v.scrollRemainder -= float32(lines)
+	}
+	v.offset = max(0, min(s.History, v.offset+lines))
 	v.selectionStart = -1
 	v.selectionEnd = -1
+	v.Refresh()
+}
+
+func (v *View) overScrollbar(x float32) bool {
+	return v.Size().Width > scrollbarWidth && x >= v.Size().Width-scrollbarWidth
+}
+
+func scrollbarThumb(history, rows, offset int, height float32) (float32, float32) {
+	if history <= 0 || height <= 0 {
+		return 0, height
+	}
+	thumbHeight := min(height, max(24, height*float32(rows)/float32(history+rows)))
+	travel := height - thumbHeight
+	return travel * float32(history-max(0, min(history, offset))) / float32(history), thumbHeight
+}
+
+func (v *View) scrollbarTo(y float32) {
+	s := v.Core.Snapshot(v.offset)
+	if s.History == 0 {
+		return
+	}
+	_, height := scrollbarThumb(s.History, v.rows, v.offset, v.Size().Height)
+	travel := v.Size().Height - height
+	if travel <= 0 {
+		return
+	}
+	top := max(float32(0), min(travel, y-v.scrollbarDragOffset))
+	v.offset = int(math.Round(float64((1 - top/travel) * float32(s.History))))
+	v.clearSelection()
 	v.Refresh()
 }
 func (v *View) Search(query string) int {
@@ -360,16 +424,17 @@ func (v *View) Send(text string) { v.enqueue(func() { v.Core.Text(text, false) }
 func (v *View) CreateRenderer() fyne.WidgetRenderer {
 	wallpaper := canvas.NewImageFromImage(v.backgroundImage)
 	wallpaper.FillMode = canvas.ImageFillCover
-	return &renderer{v: v, background: canvas.NewRectangle(theme.Color("terminalBackground")), wallpaper: wallpaper}
+	return &renderer{v: v, background: canvas.NewRectangle(theme.Color("terminalBackground")), wallpaper: wallpaper, scrollTrack: canvas.NewRectangle(theme.Color(theme.ColorNameScrollBarBackground)), scrollThumb: canvas.NewRectangle(theme.Color(theme.ColorNameScrollBar))}
 }
 
 type renderer struct {
-	v          *View
-	background *canvas.Rectangle
-	wallpaper  *canvas.Image
-	texts      []*canvas.Text
-	backs      []*canvas.Rectangle
-	objects    []fyne.CanvasObject
+	v                        *View
+	background               *canvas.Rectangle
+	wallpaper                *canvas.Image
+	scrollTrack, scrollThumb *canvas.Rectangle
+	texts                    []*canvas.Text
+	backs                    []*canvas.Rectangle
+	objects                  []fyne.CanvasObject
 }
 
 func (r *renderer) Layout(size fyne.Size) {
@@ -400,6 +465,9 @@ func (r *renderer) paint() {
 	}
 	r.background.FillColor = theme.Color("terminalBackground")
 	s := v.Core.Snapshot(v.offset)
+	if s.Alt || v.offset > s.History {
+		v.offset = min(v.offset, s.History)
+	}
 	if v.selectionScreen != nil {
 		s = *v.selectionScreen
 	}
@@ -413,6 +481,7 @@ func (r *renderer) paint() {
 			r.texts[i] = canvas.NewText("", color.White)
 			r.objects = append(r.objects, r.backs[i], r.texts[i])
 		}
+		r.objects = append(r.objects, r.scrollTrack, r.scrollThumb)
 	}
 	start, end := v.selectionStart, v.selectionEnd
 	if start > end {
@@ -462,6 +531,20 @@ func (r *renderer) paint() {
 				t.Text = ""
 			}
 		}
+	}
+	if s.History == 0 || s.Alt {
+		r.scrollTrack.Hide()
+		r.scrollThumb.Hide()
+	} else {
+		r.scrollTrack.FillColor = theme.Color(theme.ColorNameScrollBarBackground)
+		r.scrollThumb.FillColor = theme.Color(theme.ColorNameScrollBar)
+		r.scrollTrack.Move(fyne.NewPos(v.Size().Width-scrollbarWidth, 0))
+		r.scrollTrack.Resize(fyne.NewSize(scrollbarWidth, v.Size().Height))
+		top, height := scrollbarThumb(s.History, v.rows, v.offset, v.Size().Height)
+		r.scrollThumb.Move(fyne.NewPos(v.Size().Width-scrollbarWidth, top))
+		r.scrollThumb.Resize(fyne.NewSize(scrollbarWidth, height))
+		r.scrollTrack.Show()
+		r.scrollThumb.Show()
 	}
 }
 
